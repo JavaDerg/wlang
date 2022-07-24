@@ -1,8 +1,8 @@
 use nom::bytes::complete::{tag, take_while};
 use nom::character::complete::char;
-use nom::combinator::{map, opt};
-use nom::error::ParseError;
-use nom::multi::{many0, separated_list0};
+use nom::combinator::{map};
+
+use nom::multi::{many0};
 use nom::sequence::delimited;
 use nom::{Err, IResult, Offset, Parser, Slice};
 use nom::branch::alt;

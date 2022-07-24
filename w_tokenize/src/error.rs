@@ -1,4 +1,4 @@
-use crate::{Kind, Span};
+use crate::{Span};
 use nom::error::{Error, ErrorKind, ParseError};
 use nom::{Err, IResult};
 use std::borrow::Cow;
@@ -23,7 +23,7 @@ pub trait ToTokenError<Err> {
     type Res;
 
     fn reason(self, msg: impl Into<Cow<'static, str>>) -> Self::Res;
-    fn reason_fn(self, f: impl FnOnce(Err) -> (Cow<'static, str>)) -> Self::Res;
+    fn reason_fn(self, f: impl FnOnce(Err) -> Cow<'static, str>) -> Self::Res;
 }
 
 impl<'a> TokenError<'a> {
@@ -107,7 +107,7 @@ impl<'a, T> ToTokenError<TokenError<'a>> for IResult<Span<'a>, T, TokenError<'a>
         }
     }
 
-    fn reason_fn(self, f: impl FnOnce(TokenError<'a>) -> (Cow<'static, str>)) -> Self::Res {
+    fn reason_fn(self, f: impl FnOnce(TokenError<'a>) -> Cow<'static, str>) -> Self::Res {
         if self.is_ok() {
             return self;
         }
@@ -148,7 +148,7 @@ impl<'a> ParseError<Span<'a>> for TokenError<'a> {
         }
     }
 
-    fn append(input: Span<'a>, kind: ErrorKind, other: Self) -> Self {
+    fn append(input: Span<'a>, _kind: ErrorKind, other: Self) -> Self {
         Self {
             span: input,
             kind: TokenErrorKind::Other(Box::new(other)),
