@@ -1,0 +1,9 @@
+[package]
+name = "w_tokenize"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nom = "7.1.1"
+nom_locate = "4.0.0"
+either = "1.7.0"
