@@ -3,7 +3,7 @@ use nom::bytes::complete::{take_while, take_while1};
 use nom::combinator::{opt, recognize};
 use nom::IResult;
 
-pub fn ident(i: Span) -> TokResult {
+pub fn parse_ident(i: Span) -> TokResult {
     bounded(recognize(inner_span), char::is_alphanumeric)(i)
 }
 
