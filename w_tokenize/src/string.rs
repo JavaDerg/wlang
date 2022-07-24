@@ -83,7 +83,7 @@ fn parse_byte(oi: Span) -> TokResult<char> {
     let offset = oi.offset(&i);
     let si = Span::slice(&oi, ..offset);
 
-    let val = u8::from_str_radix(&*hex, 16).unwrap();
+    let val = u8::from_str_radix(*hex, 16).unwrap();
     if val >= 0x80 {
         return Err(Err::Failure(TokenError::new(
             si,

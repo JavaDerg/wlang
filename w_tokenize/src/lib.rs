@@ -1,3 +1,5 @@
+#![cfg_attr(debug_assertions, allow(dead_code))]
+
 use nom::bytes::complete::{tag, take_while};
 use nom::character::complete::char;
 use nom::combinator::{map};

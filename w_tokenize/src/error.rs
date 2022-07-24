@@ -95,12 +95,12 @@ impl<'a, T> ToTokenError<TokenError<'a>> for IResult<Span<'a>, T, TokenError<'a>
         match unsafe { self.unwrap_err_unchecked() } {
             Err::Incomplete(n) => Err(Err::Incomplete(n)),
             Err::Error(err) => Err(Err::Error(TokenError {
-                span: err.span.clone(),
+                span: err.span,
                 kind: TokenErrorKind::Other(Box::new(err)),
                 reason: Some(msg.into()),
             })),
             Err::Failure(err) => Err(Err::Failure(TokenError {
-                span: err.span.clone(),
+                span: err.span,
                 kind: TokenErrorKind::Other(Box::new(err)),
                 reason: Some(msg.into()),
             })),
@@ -116,12 +116,12 @@ impl<'a, T> ToTokenError<TokenError<'a>> for IResult<Span<'a>, T, TokenError<'a>
         match unsafe { self.unwrap_err_unchecked() } {
             Err::Incomplete(n) => Err(Err::Incomplete(n)),
             Err::Error(err) => Err(Err::Error(TokenError {
-                span: err.span.clone(),
+                span: err.span,
                 kind: TokenErrorKind::Other(Box::new(err.clone())),
                 reason: Some(f(err)),
             })),
             Err::Failure(err) => Err(Err::Failure(TokenError {
-                span: err.span.clone(),
+                span: err.span,
                 kind: TokenErrorKind::Other(Box::new(err.clone())),
                 reason: Some(f(err)),
             })),
