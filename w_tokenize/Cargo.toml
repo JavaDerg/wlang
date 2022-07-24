@@ -7,3 +7,6 @@ edition = "2021"
 nom = "7.1.1"
 nom_locate = "4.0.0"
 either = "1.7.0"
+
+[dev-dependencies]
+pretty_assertions = "1.2.1"
