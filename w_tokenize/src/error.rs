@@ -144,7 +144,7 @@ impl<'a> From<Error<Span<'a>>> for TokenError<'a> {
         TokenError {
             span: err.input,
             kind: TokenErrorKind::Nom(err.code),
-            reason: None,
+            reason: Some("Failed to obey noms parsing rules :(".into()),
         }
     }
 }
@@ -154,40 +154,44 @@ impl<'a> ParseError<Span<'a>> for TokenError<'a> {
         Self {
             span: input,
             kind: TokenErrorKind::Nom(kind),
-            reason: None,
+            reason: Some("Failed to obey noms parsing rules :(".into()),
         }
     }
 
     fn append(input: Span<'a>, _kind: ErrorKind, other: Self) -> Self {
-        Self {
-            span: input,
-            kind: TokenErrorKind::Other(Box::new(other)),
-            reason: None,
+        if other.span == input {
+            other
+        } else {
+            Self {
+                span: input,
+                kind: TokenErrorKind::Other(Box::new(other)),
+                reason: None,
+            }
         }
     }
 }
 
 impl<'a> Debug for TokenError<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+
+        match &self.kind {
+            TokenErrorKind::Nom(err) => writeln!(f, "Error: {err:?}\nCaused in:")?,
+            TokenErrorKind::Other(err) => writeln!(f, "Error: {:?}\nCaused by:", &*err)?,
+            TokenErrorKind::NomAndOther(nom, err) => {
+                write!(f, "Error: {nom:?}\nCaused by:\n{:?}", &*err)?
+            }
+            TokenErrorKind::None => f.write_str("Cause: Unknown")?,
+        }
         if let Some(r) = &self.reason {
             writeln!(f, "Error {}", r)?;
         }
         writeln!(
             f,
-            "At {} {}\n{:>4}",
+            "At {} {}:\n---------------------------\n{}\n---------------------------",
             self.span.location_line(),
             self.span.location_offset(),
             self.span
         )?;
-
-        match &self.kind {
-            TokenErrorKind::Nom(err) => write!(f, "Cause: {err:?}")?,
-            TokenErrorKind::Other(err) => write!(f, "Cause:\n{:>4?}", &*err)?,
-            TokenErrorKind::NomAndOther(nom, err) => {
-                write!(f, "Cause: {nom:?}\nAnd:\n{:>4?}", &*err)?
-            }
-            TokenErrorKind::None => f.write_str("Cause: Unknown")?,
-        }
 
         Ok(())
     }

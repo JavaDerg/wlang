@@ -3,13 +3,13 @@
 extern crate core;
 
 use nom::bytes::complete::{is_not, tag, take_while, take_while_m_n};
-use nom::character::complete::char;
+use nom::character::complete::{anychar, char};
 use nom::combinator::{map, not, opt, peek};
 
 use nom::branch::alt;
 use nom::complete::take;
 use nom::multi::{fold_many0, many0};
-use nom::sequence::{delimited, pair, terminated};
+use nom::sequence::{delimited, pair, preceded, terminated};
 use nom::{Err, IResult, Offset, Parser, Slice};
 
 mod error;
@@ -19,7 +19,7 @@ mod string;
 #[cfg(test)]
 mod tests;
 
-use crate::error::TokenError;
+use crate::error::{TokenError, TokenErrorKind};
 use crate::identifier::parse_ident;
 use crate::number::{parse_integer, Number};
 use crate::string::parse_string;
@@ -67,7 +67,9 @@ pub fn tokenize(mut i: Span) -> TokResult<Vec<Token>> {
     let mut tokens = vec![];
     loop {
         let (ni, token) = token(i).reason("failed to parse entire file")?;
-        tokens.push(token);
+        if let Some(token) = token {
+            tokens.push(token);
+        }
         i = ni;
 
         if i.len() == 0 {
@@ -78,14 +80,16 @@ pub fn tokenize(mut i: Span) -> TokResult<Vec<Token>> {
     Ok((i, tokens))
 }
 
-fn token(i: Span) -> TokResult<Token> {
+fn token(i: Span) -> TokResult<Option<Token>> {
     // yeet the whitespaces
-    let (mut i, _) = take_while(char::is_whitespace)(i)?;
+    let (oi, _) = whitespace(i)?;
 
-    let (i, _) = opt(consume_singleline_comments)(i)?;
+    let (i, _) = opt(consume_singleline_comments)(oi)?;
     let (i, _) = opt(consume_multiline_comments)(i)?;
 
-    alt((
+    let comments_pruned = oi.offset(&i) != 0;
+
+    let res = alt((
         map(parse_string, |(span, str)| Token {
             span,
             kind: Kind::String(str),
@@ -106,13 +110,21 @@ fn token(i: Span) -> TokResult<Token> {
         op(",", "", || Kind::Sep),
         op(".", "", || Kind::Call),
         op(";", "", || Kind::Sim),
-    ))(i)
+    ))(i.clone());
+
+    if res.is_ok() {
+        res.map(|(i, tok)| (i, Some(tok)))
+    } else if comments_pruned {
+        Ok((i, None))
+    } else {
+        res.map(|_| unreachable!())
+    }
 }
 
 fn consume_singleline_comments(mut oi: Span) -> TokResult<()> {
     loop {
         let (i, _) = tag("//")(oi)?;
-        let (i, _) = terminated(many0(is_not("\r\n")), take_while(char::is_whitespace))(i)?;
+        let (i, _) = terminated(many0(is_not("\r\n")), whitespace)(i)?;
         oi = i;
         if tag::<_, _, TokenError>("//")(i.clone()).is_err() {
             break;
@@ -132,14 +144,12 @@ fn consume_multiline_comments(i: Span) -> TokResult<()> {
             || (),
             |_, _| (),
         ),
-        pair(tag("*/"), take_while(char::is_whitespace)),
+        pair(tag("*/"), whitespace),
     )(i)
 }
 
 fn parse_tuple(oi: Span) -> TokResult<Token> {
-    let (i, o) = bounded(delimited(char('('), many0(token), char(')')), |_| false)(oi)?;
-    let offset = oi.offset(&i);
-    let span = Span::slice(&oi, ..offset);
+    let (i, (span, o)) = parsed_delimited(oi, '(', ')')?;
 
     Ok((
         i,
@@ -151,9 +161,7 @@ fn parse_tuple(oi: Span) -> TokResult<Token> {
 }
 
 fn parse_block(oi: Span) -> TokResult<Token> {
-    let (i, o) = bounded(delimited(char('{'), many0(token), char('}')), |_| false)(oi)?;
-    let offset = oi.offset(&i);
-    let span = Span::slice(&oi, ..offset);
+    let (i, (span, o)) = parsed_delimited(oi, '{', '}')?;
 
     Ok((
         i,
@@ -162,6 +170,45 @@ fn parse_block(oi: Span) -> TokResult<Token> {
             kind: Kind::Block(o),
         },
     ))
+}
+
+fn parsed_delimited(oi: Span, start: char, end: char) -> TokResult<(Span, Vec<Token>)> {
+    let (mut i, _) = pair(char(start), whitespace)(oi)?;
+    let mut acc = vec![];
+
+    let mut last_err = None;
+    loop {
+        match token(i.clone()) {
+            Ok((ni, token)) => {
+                if let Some(token) = token { acc.push(token) };
+                i = ni;
+            },
+            Err(Err::Error(mut err) | Err::Failure(mut err)) => {
+                err.reason = Some(format!("failure to parse at {}:{}", i.location_line(), i.location_offset()).into());
+                let err = TokenError {
+                    span: oi,
+                    kind: TokenErrorKind::Other(Box::new(err)),
+                    reason: Some("Failed to parse delimited section due to unparseable token inside".into())
+                };
+                last_err = Some(Err(Err::Failure(err)));
+                break;
+            },
+            err @ Err(_) => {
+                return err.map(|_| unreachable!());
+            }
+        }
+    }
+
+    let (i, end_p) = opt(pair(char(end), whitespace))(i)?;
+    if end_p.is_none() && last_err.is_some() {
+        last_err.unwrap()
+    } else if end_p.is_none() {
+        Err(Err::Error(TokenError::new(i, format!("expected `{end}`"))))
+    } else {
+        let offset = oi.offset(&i);
+        let span = Span::slice(&oi, ..offset);
+        Ok((i, (span, acc)))
+    }
 }
 
 fn op<'a>(
@@ -186,7 +233,7 @@ fn boundary(i: Span, mut fail: impl FnMut(char) -> bool) -> TokResult<()> {
         let first = i.chars().next().unwrap();
         char::is_whitespace(first) || !fail(first)
     } {
-        take_while(char::is_whitespace)(i).map(|(i, _)| (i, ()))
+        whitespace(i).map(|(i, _)| (i, ()))
     } else {
         Err(Err::Error(TokenError::new(
             Span::slice(&i, ..0),
@@ -205,4 +252,8 @@ where
         let (i, ()) = boundary(i, &mut fail_bound)?;
         Ok((i, o))
     }
+}
+
+fn whitespace(i: Span) -> TokResult<Span> {
+    take_while(char::is_whitespace)(i)
 }
