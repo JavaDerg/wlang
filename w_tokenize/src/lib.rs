@@ -72,13 +72,11 @@ fn token(i: Span) -> TokResult<Token> {
             span,
             kind: Kind::Ident,
         }),
-        // FIXME: this should not allow = as well, fix this
-        op("::", ':', || Kind::Defines),
-        op(":=", ':', || Kind::Define),
-        op("=", ':', || Kind::Set),
-        // FIXME: Nothing not possible
-        op(",", '\0', || Kind::Sep),
-        op(";", '\0', || Kind::Sim),
+        op("::", ":=", || Kind::Defines),
+        op(":=", ":=", || Kind::Define),
+        op("=", "", || Kind::Set),
+        op(",", "", || Kind::Sep),
+        op(";", "", || Kind::Sim),
     ))(i)
 }
 
@@ -112,10 +110,10 @@ fn parse_block(oi: Span) -> TokResult<Token> {
 
 fn op<'a>(
     op: &'static str,
-    bound: char,
+    bound: &'static str,
     kind: fn() -> Kind<'static>,
 ) -> impl FnMut(Span<'a>) -> TokResult<Token<'a>> + 'a {
-    map(bounded(tag(op), move |c| c == bound), move |o| Token {
+    map(bounded(tag(op), move |c| bound.contains(c)), move |o| Token {
         span: o,
         kind: kind(),
     })

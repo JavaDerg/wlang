@@ -11,6 +11,7 @@ pub struct Number<'a> {
     base: Option<Span<'a>>,
 }
 
+// FIXME: Make bounded
 pub fn parse_integer(oi: Span) -> TokResult<(Span, Number)> {
     let (i, _sign) = opt(is_a("+-"))(oi)?;
     let (i, base) = opt(parse_base)(i)?;
