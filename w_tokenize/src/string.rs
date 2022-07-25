@@ -3,7 +3,7 @@ use either::Either;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while1, take_while_m_n};
 use nom::character::complete::char as char_;
-use nom::combinator::{value};
+use nom::combinator::value;
 use nom::multi::fold_many0;
 use nom::sequence::delimited;
 use nom::{Err, Offset, Slice};

@@ -1,4 +1,4 @@
-use crate::{Span};
+use crate::Span;
 use nom::error::{Error, ErrorKind, ParseError};
 use nom::{Err, IResult};
 use std::borrow::Cow;

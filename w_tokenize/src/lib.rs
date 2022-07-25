@@ -1,22 +1,27 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+extern crate core;
+
+use core::num::dec2flt::parse::parse_number;
 use nom::bytes::complete::{tag, take_while};
 use nom::character::complete::char;
-use nom::combinator::{map};
+use nom::combinator::map;
 
-use nom::multi::{many0};
+use nom::branch::alt;
+use nom::multi::many0;
 use nom::sequence::delimited;
 use nom::{Err, IResult, Offset, Parser, Slice};
-use nom::branch::alt;
 
 mod error;
 mod identifier;
+mod number;
 mod string;
 
 use crate::error::TokenError;
-use error::ToTokenError;
 use crate::identifier::parse_ident;
 use crate::string::parse_string;
+use error::ToTokenError;
+use crate::number::Number;
 
 type Span<'a> = nom_locate::LocatedSpan<&'a str>;
 type TokResult<'a, R = Span<'a>> = IResult<Span<'a>, R, TokenError<'a>>;
@@ -48,6 +53,7 @@ pub enum Kind<'a> {
     Block(Vec<Token<'a>>),
 
     String(String),
+    Number(Number<'a>),
 }
 
 fn token(i: Span) -> TokResult<Token> {
@@ -55,6 +61,10 @@ fn token(i: Span) -> TokResult<Token> {
         map(parse_string, |(span, str)| Token {
             span,
             kind: Kind::String(str),
+        }),
+        map(parse_number, |(span, num)| Token {
+            span,
+            kind: Kind::Number(num),
         }),
         parse_block,
         parse_tuple,
@@ -77,10 +87,13 @@ fn parse_tuple(oi: Span) -> TokResult<Token> {
     let offset = oi.offset(&i);
     let span = Span::slice(&oi, ..offset);
 
-    Ok((i, Token {
-        span,
-        kind: Kind::Tuple(o)
-    }))
+    Ok((
+        i,
+        Token {
+            span,
+            kind: Kind::Tuple(o),
+        },
+    ))
 }
 
 fn parse_block(oi: Span) -> TokResult<Token> {
@@ -88,10 +101,13 @@ fn parse_block(oi: Span) -> TokResult<Token> {
     let offset = oi.offset(&i);
     let span = Span::slice(&oi, ..offset);
 
-    Ok((i, Token {
-        span,
-        kind: Kind::Block(o)
-    }))
+    Ok((
+        i,
+        Token {
+            span,
+            kind: Kind::Block(o),
+        },
+    ))
 }
 
 fn op<'a>(
