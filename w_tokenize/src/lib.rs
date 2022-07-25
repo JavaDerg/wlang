@@ -25,8 +25,8 @@ use crate::number::{parse_integer, Number};
 use crate::string::parse_string;
 use error::ToTokenError;
 
-type Span<'a> = nom_locate::LocatedSpan<&'a str>;
-type TokResult<'a, R = Span<'a>> = IResult<Span<'a>, R, TokenError<'a>>;
+pub type Span<'a> = nom_locate::LocatedSpan<&'a str>;
+pub type TokResult<'a, R = Span<'a>> = IResult<Span<'a>, R, TokenError<'a>>;
 
 #[derive(Debug, Clone)]
 pub struct Token<'a> {

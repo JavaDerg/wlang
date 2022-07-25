@@ -2,4 +2,5 @@
 members = [
     "wc",
     "w_tokenize",
+    "w_parse",
 ]
