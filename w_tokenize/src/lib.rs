@@ -16,26 +16,30 @@ mod error;
 mod identifier;
 mod number;
 mod string;
+#[cfg(test)]
+mod tests;
 
 use crate::error::TokenError;
 use crate::identifier::parse_ident;
+use crate::number::{parse_integer, Number};
 use crate::string::parse_string;
 use error::ToTokenError;
-use crate::number::Number;
 
 type Span<'a> = nom_locate::LocatedSpan<&'a str>;
 type TokResult<'a, R = Span<'a>> = IResult<Span<'a>, R, TokenError<'a>>;
 
+#[derive(Debug, Clone)]
 pub struct Token<'a> {
     pub span: Span<'a>,
     pub kind: Kind<'a>,
 }
 
+#[derive(Debug, Clone)]
 pub enum Kind<'a> {
     Ident,
 
     /// `::`
-    Defines,
+    Names,
 
     /// `:=`
     Define,
@@ -47,6 +51,9 @@ pub enum Kind<'a> {
     /// `;`
     Sim,
 
+    /// `.`
+    Call,
+
     /// `(TOKENS)`
     Tuple(Vec<Token<'a>>),
     /// `{TOKENS}`
@@ -54,6 +61,21 @@ pub enum Kind<'a> {
 
     String(String),
     Number(Number<'a>),
+}
+
+pub fn tokenize(mut i: Span) -> TokResult<Vec<Token>> {
+    let mut tokens = vec![];
+    loop {
+        let (ni, token) = token(i).reason("failed to parse entire file")?;
+        tokens.push(token);
+        i = ni;
+
+        if i.len() == 0 {
+            break;
+        }
+    }
+
+    Ok((i, tokens))
 }
 
 fn token(i: Span) -> TokResult<Token> {
@@ -68,7 +90,7 @@ fn token(i: Span) -> TokResult<Token> {
             span,
             kind: Kind::String(str),
         }),
-        map(parse_number, |(span, num)| Token {
+        map(parse_integer, |(span, num)| Token {
             span,
             kind: Kind::Number(num),
         }),
@@ -78,10 +100,11 @@ fn token(i: Span) -> TokResult<Token> {
             span,
             kind: Kind::Ident,
         }),
-        op("::", ":=", || Kind::Defines),
+        op("::", ":=", || Kind::Names),
         op(":=", ":=", || Kind::Define),
         op("=", "", || Kind::Set),
         op(",", "", || Kind::Sep),
+        op(".", "", || Kind::Call),
         op(";", "", || Kind::Sim),
     ))(i)
 }
@@ -146,9 +169,11 @@ fn op<'a>(
     bound: &'static str,
     kind: fn() -> Kind<'static>,
 ) -> impl FnMut(Span<'a>) -> TokResult<Token<'a>> + 'a {
-    map(bounded(tag(op), move |c| bound.contains(c)), move |o| Token {
-        span: o,
-        kind: kind(),
+    map(bounded(tag(op), move |c| bound.contains(c)), move |o| {
+        Token {
+            span: o,
+            kind: kind(),
+        }
     })
 }
 

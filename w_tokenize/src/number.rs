@@ -2,16 +2,16 @@ use crate::{bounded, Span, TokResult};
 use nom::branch::alt;
 use nom::bytes::complete::{is_a, tag, take_while, take_while1};
 use nom::combinator::{opt, recognize};
-use nom::{Offset, Slice};
 use nom::sequence::pair;
+use nom::{Offset, Slice};
 
+#[derive(Debug, Clone)]
 pub struct Number<'a> {
     number: Span<'a>,
     suffix: Option<Span<'a>>,
     base: Option<Span<'a>>,
 }
 
-// FIXME: Make bounded
 pub fn parse_integer(i: Span) -> TokResult<(Span, Number)> {
     bounded(parse_integer_inner, |c| c.is_alphanumeric())(i)
 }
@@ -35,11 +35,17 @@ fn parse_integer_inner(oi: Span) -> TokResult<(Span, Number)> {
     let offset = oi.offset(&i);
     let span = Span::slice(&oi, ..offset);
 
-    Ok((i, (span, Number {
-        number: num,
-        suffix,
-        base,
-    })))
+    Ok((
+        i,
+        (
+            span,
+            Number {
+                number: num,
+                suffix,
+                base,
+            },
+        ),
+    ))
 }
 
 fn parse_base(i: Span) -> TokResult {

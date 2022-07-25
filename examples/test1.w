@@ -1,7 +1,7 @@
 print_num :: extern "custom_test" func(i32);
 
 main :: func() {
-    let f = fib(42);
+    f := fib(42);
     print_num(f)
 }
 

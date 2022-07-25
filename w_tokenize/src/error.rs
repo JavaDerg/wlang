@@ -1,6 +1,6 @@
-use crate::Span;
+use crate::{Span, TokResult};
 use nom::error::{Error, ErrorKind, ParseError};
-use nom::{Err, IResult};
+use nom::{Err, IResult, Parser};
 use std::borrow::Cow;
 use std::fmt::{Debug, Formatter};
 
@@ -34,6 +34,16 @@ impl<'a> TokenError<'a> {
             reason: Some(msg.into()),
         }
     }
+}
+
+pub fn reason<'a, F, O>(
+    mut parser: F,
+    msg: impl Into<Cow<'static, str>> + Clone,
+) -> impl FnMut(Span<'a>) -> TokResult<O>
+where
+    F: Parser<Span<'a>, O, TokenError<'a>>,
+{
+    move |i| parser.parse(i).reason(msg.clone())
 }
 
 // impl<'a, T> ToTokenError<Error<Span<'a>>> for IResult<Span<'a>, T> {
@@ -162,7 +172,13 @@ impl<'a> Debug for TokenError<'a> {
         if let Some(r) = &self.reason {
             writeln!(f, "Error {}", r)?;
         }
-        writeln!(f, "At {}", self.span)?;
+        writeln!(
+            f,
+            "At {} {}\n{:>4}",
+            self.span.location_line(),
+            self.span.location_offset(),
+            self.span
+        )?;
 
         match &self.kind {
             TokenErrorKind::Nom(err) => write!(f, "Cause: {err:?}")?,
