@@ -36,6 +36,7 @@ pub struct Token<'a> {
 
 #[derive(Debug, Clone)]
 pub enum Kind<'a> {
+    /// Regular identifier
     Ident,
 
     /// `::`
@@ -53,6 +54,74 @@ pub enum Kind<'a> {
 
     /// `.`
     Call,
+
+    // Math operands
+    /// `+`
+    Add,
+    /// `-`
+    Sub,
+    /// `*`
+    Mul,
+    /// `/`
+    Div,
+    /// `%`
+    Mod,
+
+    // Bitwise operands
+    /// `&`
+    And,
+    /// `|`
+    Or,
+    /// `^`
+    Xor,
+    /// `<<`
+    Shl,
+    /// `>>`
+    Shr,
+
+    // Comparison operands
+    /// `==`
+    Eq,
+    /// `!=`
+    Neq,
+    /// `<`
+    Lt,
+    /// `<=`
+    Le,
+    /// `>`
+    Gt,
+    /// `>=`
+    Ge,
+
+    // Logical operands
+    /// `&&`
+    AndL,
+    /// `||`
+    OrL,
+    /// `!`
+    Not,
+
+    // Assignment operands
+    /// `+=`
+    AddAssign,
+    /// `-=`
+    SubAssign,
+    /// `*=`
+    MulAssign,
+    /// `/=`
+    DivAssign,
+    /// `%=`
+    ModAssign,
+    /// `&=`
+    AndAssign,
+    /// `|=`
+    OrAssign,
+    /// `^=`
+    XorAssign,
+    /// `<<=`
+    ShlAssign,
+    /// `>>=`
+    ShrAssign,
 
     /// `(TOKENS)`
     Tuple(Vec<Token<'a>>),
@@ -89,6 +158,7 @@ fn token(i: Span) -> TokResult<Option<Token>> {
 
     let comments_pruned = oi.offset(&i) != 0;
 
+    // this had to be done due to limitations with `alt`
     let res = alt((
         map(parse_string, |(span, str)| Token {
             span,
@@ -104,12 +174,59 @@ fn token(i: Span) -> TokResult<Option<Token>> {
             span,
             kind: Kind::Ident,
         }),
-        op("::", ":=", || Kind::Names),
-        op(":=", ":=", || Kind::Define),
-        op("=", "", || Kind::Set),
-        op(",", "", || Kind::Sep),
-        op(".", "", || Kind::Call),
-        op(";", "", || Kind::Sim),
+        // assignment operators
+        alt((
+            op("<<=", "", || Kind::ShlAssign),
+            op(">>=", "", || Kind::ShrAssign),
+            op("+=", "", || Kind::AddAssign),
+            op("-=", "", || Kind::SubAssign),
+            op("*=", "", || Kind::MulAssign),
+            op("/=", "", || Kind::DivAssign),
+            op("%=", "", || Kind::ModAssign),
+            op("&=", "", || Kind::AndAssign),
+            op("|=", "", || Kind::OrAssign),
+            op("^=", "", || Kind::XorAssign),
+        )),
+        // logic operators
+        alt((
+            op("&&", "", || Kind::AndL),
+            op("||", "", || Kind::OrL),
+            op("!", "", || Kind::Not),
+        )),
+        // bitwise operators
+        alt((
+            op("<<", "", || Kind::Shl),
+            op(">>", "", || Kind::Shr),
+            op("&", "", || Kind::And),
+            op("|", "", || Kind::Or),
+            op("^", "", || Kind::Xor),
+        )),
+        // math operations
+        alt((
+            op("+", "", || Kind::Add),
+            op("-", "", || Kind::Sub),
+            op("*", "", || Kind::Mul),
+            op("/", "", || Kind::Div),
+            op("%", "", || Kind::Mod),
+        )),
+        // comparison operators
+        alt((
+            op("==", "", || Kind::Eq),
+            op("!=", "", || Kind::Neq),
+            op("<=", "", || Kind::Le),
+            op(">=", "", || Kind::Ge),
+            op("<", "", || Kind::Lt),
+            op(">", "", || Kind::Gt),
+        )),
+        // other
+        alt((
+            op("::", ":=", || Kind::Names),
+            op(":=", ":=", || Kind::Define),
+            op(",", "", || Kind::Sep),
+            op(".", "", || Kind::Call),
+            op(";", "", || Kind::Sim),
+            op("=", "", || Kind::Set),
+        )),
     ))(i.clone());
 
     if res.is_ok() {
@@ -199,7 +316,7 @@ fn parsed_delimited(oi: Span, start: char, end: char) -> TokResult<(Span, Vec<To
         }
     }
 
-    let (i, end_p) = opt(pair(char(end), whitespace))(i)?;
+    let (i, end_p) = opt(char(end))(i)?;
     if end_p.is_none() && last_err.is_some() {
         last_err.unwrap()
     } else if end_p.is_none() {
@@ -207,7 +324,7 @@ fn parsed_delimited(oi: Span, start: char, end: char) -> TokResult<(Span, Vec<To
     } else {
         let offset = oi.offset(&i);
         let span = Span::slice(&oi, ..offset);
-        Ok((i, (span, acc)))
+        Ok((whitespace(i)?.0, (span, acc)))
     }
 }
 
