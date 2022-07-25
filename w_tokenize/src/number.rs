@@ -1,4 +1,4 @@
-use crate::{Span, TokResult};
+use crate::{bounded, Span, TokResult};
 use nom::branch::alt;
 use nom::bytes::complete::{is_a, tag, take_while, take_while1};
 use nom::combinator::{opt, recognize};
@@ -12,7 +12,11 @@ pub struct Number<'a> {
 }
 
 // FIXME: Make bounded
-pub fn parse_integer(oi: Span) -> TokResult<(Span, Number)> {
+pub fn parse_integer(i: Span) -> TokResult<(Span, Number)> {
+    bounded(parse_integer_inner, |c| c.is_alphanumeric())(i)
+}
+
+fn parse_integer_inner(oi: Span) -> TokResult<(Span, Number)> {
     let (i, _sign) = opt(is_a("+-"))(oi)?;
     let (i, base) = opt(parse_base)(i)?;
     let num_check = match &base {
