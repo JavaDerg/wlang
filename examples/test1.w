@@ -5,6 +5,13 @@ main :: func() {
     print_num(f)
 }
 
+/* nice
+    /*
+        embedded comments are good
+    */
+    :3
+*/
+
 fib :: func(n u32) u32 {
     if n <= 2
         n.min(1)

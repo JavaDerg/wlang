@@ -2,14 +2,14 @@
 
 extern crate core;
 
-use core::num::dec2flt::parse::parse_number;
-use nom::bytes::complete::{tag, take_while};
+use nom::bytes::complete::{is_not, tag, take_while, take_while_m_n};
 use nom::character::complete::char;
-use nom::combinator::map;
+use nom::combinator::{map, not, opt, peek};
 
 use nom::branch::alt;
-use nom::multi::many0;
-use nom::sequence::delimited;
+use nom::complete::take;
+use nom::multi::{fold_many0, many0};
+use nom::sequence::{delimited, pair, terminated};
 use nom::{Err, IResult, Offset, Parser, Slice};
 
 mod error;
@@ -57,6 +57,12 @@ pub enum Kind<'a> {
 }
 
 fn token(i: Span) -> TokResult<Token> {
+    // yeet the whitespaces
+    let (mut i, _) = take_while(char::is_whitespace)(i)?;
+
+    let (i, _) = opt(consume_singleline_comments)(i)?;
+    let (i, _) = opt(consume_multiline_comments)(i)?;
+
     alt((
         map(parse_string, |(span, str)| Token {
             span,
@@ -78,6 +84,33 @@ fn token(i: Span) -> TokResult<Token> {
         op(",", "", || Kind::Sep),
         op(";", "", || Kind::Sim),
     ))(i)
+}
+
+fn consume_singleline_comments(mut oi: Span) -> TokResult<()> {
+    loop {
+        let (i, _) = tag("//")(oi)?;
+        let (i, _) = terminated(many0(is_not("\r\n")), take_while(char::is_whitespace))(i)?;
+        oi = i;
+        if tag::<_, _, TokenError>("//")(i.clone()).is_err() {
+            break;
+        }
+    }
+    Ok((oi, ()))
+}
+
+fn consume_multiline_comments(i: Span) -> TokResult<()> {
+    delimited(
+        tag("/*"),
+        fold_many0(
+            alt((
+                consume_multiline_comments,
+                map(pair(not(tag("*/")), take_while_m_n(1, 1, |_| true)), |_| ()),
+            )),
+            || (),
+            |_, _| (),
+        ),
+        pair(tag("*/"), take_while(char::is_whitespace)),
+    )(i)
 }
 
 fn parse_tuple(oi: Span) -> TokResult<Token> {
