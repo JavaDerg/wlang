@@ -132,6 +132,7 @@ checksum = "15c61ba63f9235225a22310255a29b806b907c9b8c964bcbd0a2c70f3f2deea7"
 name = "w_parse"
 version = "0.1.0"
 dependencies = [
+ "nom",
  "w_tokenize",
 ]
 

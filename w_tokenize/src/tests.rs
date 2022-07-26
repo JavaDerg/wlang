@@ -2,6 +2,7 @@ use crate::{parse_block, token, tokenize, Span, parse_tuple};
 use nom::character::complete::char;
 use nom::multi::many0;
 use nom::sequence::delimited;
+use nom::Slice;
 
 #[test]
 fn parses() {

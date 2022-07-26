@@ -2,6 +2,7 @@
 
 extern crate core;
 
+use std::rc::Rc;
 use nom::bytes::complete::{is_not, tag, take_while, take_while_m_n};
 use nom::character::complete::{anychar, char};
 use nom::combinator::{map, not, opt, peek};
@@ -34,7 +35,7 @@ pub struct Token<'a> {
     pub kind: Kind<'a>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Kind<'a> {
     /// Regular identifier
     Ident,
@@ -124,9 +125,9 @@ pub enum Kind<'a> {
     ShrAssign,
 
     /// `(TOKENS)`
-    Tuple(Vec<Token<'a>>),
+    Tuple(Rc<[Token<'a>]>),
     /// `{TOKENS}`
-    Block(Vec<Token<'a>>),
+    Block(Rc<[Token<'a>]>),
 
     String(String),
     Number(Number<'a>),
@@ -272,7 +273,7 @@ fn parse_tuple(oi: Span) -> TokResult<Token> {
         i,
         Token {
             span,
-            kind: Kind::Tuple(o),
+            kind: Kind::Tuple(Rc::from(o.into_boxed_slice())),
         },
     ))
 }
@@ -284,7 +285,7 @@ fn parse_block(oi: Span) -> TokResult<Token> {
         i,
         Token {
             span,
-            kind: Kind::Block(o),
+            kind: Kind::Block(Rc::from(o.into_boxed_slice())),
         },
     ))
 }
@@ -373,4 +374,59 @@ where
 
 fn whitespace(i: Span) -> TokResult<Span> {
     take_while(char::is_whitespace)(i)
+}
+
+impl<'a> PartialEq for Token<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        *self.span == *other.span || self.kind == other.kind
+    }
+}
+impl<'a> Eq for Token<'a> {}
+
+impl<'a> Kind<'a> {
+    // Important for weak comparison
+    pub fn cmp_id(&self) -> u32 {
+        match self {
+            Kind::Ident => 0,
+            Kind::Names => 1,
+            Kind::Define => 2,
+            Kind::Set => 3,
+            Kind::Sep => 4,
+            Kind::Sim => 5,
+            Kind::Call => 6,
+            Kind::Add => 7,
+            Kind::Sub => 8,
+            Kind::Mul => 9,
+            Kind::Div => 10,
+            Kind::Mod => 11,
+            Kind::And => 12,
+            Kind::Or => 13,
+            Kind::Xor => 14,
+            Kind::Shl => 15,
+            Kind::Shr => 16,
+            Kind::Eq => 17,
+            Kind::Neq => 18,
+            Kind::Lt => 19,
+            Kind::Le => 20,
+            Kind::Gt => 21,
+            Kind::Ge => 22,
+            Kind::AndL => 23,
+            Kind::OrL => 24,
+            Kind::Not => 25,
+            Kind::AddAssign => 26,
+            Kind::SubAssign => 27,
+            Kind::MulAssign => 28,
+            Kind::DivAssign => 29,
+            Kind::ModAssign => 30,
+            Kind::AndAssign => 31,
+            Kind::OrAssign => 32,
+            Kind::XorAssign => 33,
+            Kind::ShlAssign => 34,
+            Kind::ShrAssign => 35,
+            Kind::Tuple(_) => 36,
+            Kind::Block(_) => 37,
+            Kind::String(_) => 38,
+            Kind::Number(_) => 39
+        }
+    }
 }
