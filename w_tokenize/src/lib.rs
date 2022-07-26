@@ -11,7 +11,7 @@ use nom::branch::alt;
 use nom::complete::take;
 use nom::multi::{fold_many0, many0};
 use nom::sequence::{delimited, pair, preceded, terminated};
-use nom::{Err, IResult, Offset, Parser, Slice};
+use nom::{Err, InputLength, IResult, Offset, Parser, Slice};
 
 mod error;
 mod identifier;
@@ -428,5 +428,11 @@ impl<'a> Kind<'a> {
             Kind::String(_) => 38,
             Kind::Number(_) => 39
         }
+    }
+}
+
+impl<'a> InputLength for Token<'a> {
+    fn input_len(&self) -> usize {
+        1
     }
 }

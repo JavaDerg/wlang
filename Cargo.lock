@@ -149,6 +149,10 @@ dependencies = [
 [[package]]
 name = "wc"
 version = "0.1.0"
+dependencies = [
+ "w_parse",
+ "w_tokenize",
+]
 
 [[package]]
 name = "winapi"
