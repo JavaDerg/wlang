@@ -2,7 +2,6 @@ mod types;
 mod error;
 mod parser;
 
-
 use std::collections::HashMap;
 use std::rc::Rc;
 use nom::bytes::complete::tag;

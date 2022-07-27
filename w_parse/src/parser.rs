@@ -2,20 +2,41 @@ use std::ops::{Deref, DerefMut};
 use std::string::ParseError;
 use nom::bytes::complete::tag;
 use nom::{Compare, CompareResult, Err, InputLength, InputTake, IResult, Parser};
-use w_tokenize::{Kind, Token};
+use w_tokenize::{Kind, Span, Token};
 use crate::error::{Error, ErrorChain};
 
 pub type ParResult<'a, 'b, T = TokenSpan<'a, 'b>> = IResult<TokenSpan<'a, 'b>, T, ErrorChain<'a, 'b>>;
-pub struct TokenSpan<'a, 'b>(pub &'b [Token<'a>]);
+pub struct TokenSpan<'a, 'b> {
+    pub(crate) file: Span<'a>,
+    pub(crate) this: &'b [Token <'a>],
+}
+
+impl<'a, 'b> TokenSpan<'a, 'b> {
+    pub fn new(file: Span<'a>, tokens: &'b [Token<'a>]) -> TokenSpan<'a, 'b> {
+        TokenSpan {
+            file,
+            this: tokens,
+        }
+    }
+}
 
 impl<'a, 'b> InputTake for TokenSpan<'a, 'b> {
     fn take(&self, count: usize) -> Self {
-        Self(&self.0[..count])
+        Self {
+            file: self.file.clone(),
+            this: &self.this[..count],
+        }
     }
 
     fn take_split(&self, count: usize) -> (Self, Self) {
-        let (prefix, suffix) = self.0.split_at(count);
-        (Self(suffix), Self(prefix))
+        let (prefix, suffix) = self.this.split_at(count);
+        (Self {
+            file: self.file,
+            this: suffix,
+        }, Self {
+            file: self.file,
+            this: prefix,
+        })
     }
 }
 
@@ -65,7 +86,7 @@ impl<'a, 'b> Compare<Weak<'a>> for Token<'b> {
 
 impl<'a, 'b, 'c> Compare<Strong<'c>> for TokenSpan<'a, 'b> {
     fn compare(&self, t: Strong<'c>) -> CompareResult {
-        if self.len() == 1 {
+        if self.len() >= 1 {
             self[0].compare(t)
         } else {
             CompareResult::Error
@@ -73,7 +94,7 @@ impl<'a, 'b, 'c> Compare<Strong<'c>> for TokenSpan<'a, 'b> {
     }
 
     fn compare_no_case(&self, t: Strong<'c>) -> CompareResult {
-        if self.len() == 1 {
+        if self.len() >= 1 {
             self[0].compare_no_case(t)
         } else {
             CompareResult::Error
@@ -82,7 +103,7 @@ impl<'a, 'b, 'c> Compare<Strong<'c>> for TokenSpan<'a, 'b> {
 }
 impl<'a, 'b, 'c> Compare<Weak<'c>> for TokenSpan<'a, 'b> {
     fn compare(&self, t: Weak<'c>) -> CompareResult {
-        if self.len() == 1 {
+        if self.len() >= 1 {
             self[0].compare(t)
         } else {
             CompareResult::Error
@@ -90,7 +111,7 @@ impl<'a, 'b, 'c> Compare<Weak<'c>> for TokenSpan<'a, 'b> {
     }
 
     fn compare_no_case(&self, t: Weak<'c>) -> CompareResult {
-        if self.len() == 1 {
+        if self.len() >= 1 {
             self[0].compare_no_case(t)
         } else {
             CompareResult::Error
@@ -131,13 +152,13 @@ impl<'a, 'b, 'c> Parser<TokenSpan<'a, 'b>, Token<'a>, ErrorChain<'a, 'b>> for We
 impl<'a, 'b> Deref for TokenSpan<'a, 'b> {
     type Target = &'b [Token<'a>];
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.this
     }
 }
 
 impl<'a, 'b> DerefMut for TokenSpan<'a, 'b> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.this
 
     }
 }
