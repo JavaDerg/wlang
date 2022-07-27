@@ -57,7 +57,20 @@ fn parse_struct_block(i: TokenSpan) -> ParResult<Vec<(Identifier, Type)>> {
 }
 
 fn parse_tuple_type(i: TokenSpan) -> ParResult<TupleType> {
-    todo!()
+    let (i, block) = Weak(Kind::Tuple(Rc::from([]))).parse(i)?;
+    let block_tokens = assert_matches!(block.kind, Kind::Tuple(tk) => tk);
+
+    let block_span = TokenSpan::new(i.file, block_tokens);
+    let (i, fields) = parse_tuple_inner(block_span)?;
+
+    Ok((i, TupleType(fields)))
+}
+
+fn parse_tuple_inner(i: TokenSpan) -> ParResult<Vec<Type>> {
+    terminated(
+        separated_list0(Weak(Kind::Comma), parse_type),
+        opt(Weak(Kind::Comma)),
+    )(i)
 }
 
 fn parse_function_type(i: TokenSpan) -> ParResult<FunctionType> {
