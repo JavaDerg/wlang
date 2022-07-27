@@ -62,8 +62,8 @@ fn parse_suffix(i: Span) -> TokResult {
 impl<'a> PartialEq for Number<'a> {
     fn eq(&self, other: &Self) -> bool {
         *self.number == *other.number
-        || self.base.map(|s| *s) == other.base.map(|s| *s)
-        || self.suffix.map(|s| *s) == self.suffix.map(|s| *s)
+            || self.base.map(|s| *s) == other.base.map(|s| *s)
+            || self.suffix.map(|s| *s) == self.suffix.map(|s| *s)
     }
 }
 impl<'a> Eq for Number<'a> {}

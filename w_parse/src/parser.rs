@@ -1,42 +1,66 @@
-use std::ops::{Deref, DerefMut};
-use std::string::ParseError;
-use nom::bytes::complete::tag;
-use nom::{Compare, CompareResult, Err, InputLength, InputTake, IResult, Parser};
-use w_tokenize::{Kind, Span, Token};
 use crate::error::{Error, ErrorChain};
+use nom::bytes::complete::tag;
+use nom::{Compare, CompareResult, Err, IResult, InputLength, InputTake, Parser};
+use std::ops::{Deref, DerefMut, Range};
+use std::rc::Rc;
+use std::string::ParseError;
+use w_tokenize::{Kind, Span, Token};
 
-pub type ParResult<'a, 'b, T = TokenSpan<'a, 'b>> = IResult<TokenSpan<'a, 'b>, T, ErrorChain<'a, 'b>>;
-pub struct TokenSpan<'a, 'b> {
+pub type ParResult<'a, T = TokenSpan<'a>> = IResult<TokenSpan<'a>, T, ErrorChain<'a>>;
+
+#[derive(Clone)]
+pub struct TokenSpan<'a> {
     pub(crate) file: Span<'a>,
-    pub(crate) this: &'b [Token <'a>],
+    pub(crate) local: Range<usize>,
+    pub(crate) tokens: Rc<[Token<'a>]>
 }
 
-impl<'a, 'b> TokenSpan<'a, 'b> {
-    pub fn new(file: Span<'a>, tokens: &'b [Token<'a>]) -> TokenSpan<'a, 'b> {
+impl<'a> TokenSpan<'a> {
+    pub fn new(file: Span<'a>, tokens: Rc<[Token<'a>]>) -> TokenSpan<'a> {
         TokenSpan {
             file,
-            this: tokens,
+            local: 0..tokens.len(),
+            tokens
         }
     }
 }
 
-impl<'a, 'b> InputTake for TokenSpan<'a, 'b> {
+impl<'a> InputTake for TokenSpan<'a> {
     fn take(&self, count: usize) -> Self {
+        if self.local.start + count > self.tokens.len() {
+            panic!("TokenSpan::take: out of bounds");
+        }
         Self {
             file: self.file.clone(),
-            this: &self.this[..count],
+            local: self.local.start..self.local.end + count,
+            tokens: self.tokens.clone(),
         }
     }
 
     fn take_split(&self, count: usize) -> (Self, Self) {
-        let (prefix, suffix) = self.this.split_at(count);
+        if self.local.start + count > self.tokens.len() {
+            panic!("TokenSpan::take: out of bounds");
+        }
+
+        let left = self.local.start;
+        let mid = self.local.start + count;
+        let right = self.tokens.len();
+
         (Self {
             file: self.file,
-            this: suffix,
+            local: mid..right,
+            tokens: self.tokens.clone(),
         }, Self {
             file: self.file,
-            this: prefix,
+            local: left..mid,
+            tokens: self.tokens.clone(),
         })
+    }
+}
+
+impl<'a> InputLength for TokenSpan<'a> {
+    fn input_len(&self) -> usize {
+        self.local.len()
     }
 }
 
@@ -55,7 +79,6 @@ impl<'a> InputLength for Weak<'a> {
         1
     }
 }
-
 
 impl<'a, 'b> Compare<Strong<'a>> for Token<'b> {
     fn compare(&self, t: Strong<'a>) -> CompareResult {
@@ -84,8 +107,8 @@ impl<'a, 'b> Compare<Weak<'a>> for Token<'b> {
     }
 }
 
-impl<'a, 'b, 'c> Compare<Strong<'c>> for TokenSpan<'a, 'b> {
-    fn compare(&self, t: Strong<'c>) -> CompareResult {
+impl<'a, 'b> Compare<Strong<'b>> for TokenSpan<'a> {
+    fn compare(&self, t: Strong<'b>) -> CompareResult {
         if self.len() >= 1 {
             self[0].compare(t)
         } else {
@@ -93,7 +116,7 @@ impl<'a, 'b, 'c> Compare<Strong<'c>> for TokenSpan<'a, 'b> {
         }
     }
 
-    fn compare_no_case(&self, t: Strong<'c>) -> CompareResult {
+    fn compare_no_case(&self, t: Strong<'b>) -> CompareResult {
         if self.len() >= 1 {
             self[0].compare_no_case(t)
         } else {
@@ -101,7 +124,7 @@ impl<'a, 'b, 'c> Compare<Strong<'c>> for TokenSpan<'a, 'b> {
         }
     }
 }
-impl<'a, 'b, 'c> Compare<Weak<'c>> for TokenSpan<'a, 'b> {
+impl<'a, 'c> Compare<Weak<'c>> for TokenSpan<'a> {
     fn compare(&self, t: Weak<'c>) -> CompareResult {
         if self.len() >= 1 {
             self[0].compare(t)
@@ -119,46 +142,56 @@ impl<'a, 'b, 'c> Compare<Weak<'c>> for TokenSpan<'a, 'b> {
     }
 }
 
-
-impl<'a, 'b, 'c> Parser<TokenSpan<'a, 'b>, Token<'a>, ErrorChain<'a, 'b>> for Strong<'c> {
-    fn parse(&mut self, input: TokenSpan<'a, 'b>) -> IResult<TokenSpan<'a, 'b>, Token<'a>, ErrorChain<'a, 'b>> {
+impl<'a, 'b> Parser<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> for Strong<'b> {
+    fn parse(
+        &mut self,
+        input: TokenSpan<'a>,
+    ) -> IResult<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> {
         if input.is_empty() {
-            Err(Err::Error(ErrorChain::from(Error::new(input, "expected token"))))
+            Err(Err::Error(ErrorChain::from(Error::new(
+                input,
+                "expected token",
+            ))))
         } else {
             let (ni, token) = input.take_split(1);
             if Compare::compare(&token[0], self.clone()) == CompareResult::Ok {
                 Ok((ni, token[0].clone()))
             } else {
-                Err(Err::Error(ErrorChain::from(Error::new(input, "expected token"))))
+                Err(Err::Error(ErrorChain::from(Error::new(
+                    input,
+                    "expected token",
+                ))))
             }
         }
     }
 }
-impl<'a, 'b, 'c> Parser<TokenSpan<'a, 'b>, Token<'a>, ErrorChain<'a, 'b>> for Weak<'c> {
-    fn parse(&mut self, input: TokenSpan<'a, 'b>) -> IResult<TokenSpan<'a, 'b>, Token<'a>, ErrorChain<'a, 'b>> {
+impl<'a, 'b> Parser<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> for Weak<'b> {
+    fn parse(
+        &mut self,
+        input: TokenSpan<'a>,
+    ) -> IResult<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> {
         if input.is_empty() {
-            Err(Err::Error(ErrorChain::from(Error::new(input, "expected token"))))
+            Err(Err::Error(ErrorChain::from(Error::new(
+                input,
+                "expected token",
+            ))))
         } else {
             let (ni, token) = input.take_split(1);
             if Compare::compare(&token[0], self.clone()) == CompareResult::Ok {
                 Ok((ni, token[0].clone()))
             } else {
-                Err(Err::Error(ErrorChain::from(Error::new(input, "expected token"))))
+                Err(Err::Error(ErrorChain::from(Error::new(
+                    input,
+                    "expected token",
+                ))))
             }
         }
     }
 }
 
-impl<'a, 'b> Deref for TokenSpan<'a, 'b> {
-    type Target = &'b [Token<'a>];
+impl<'a> Deref for TokenSpan<'a> {
+    type Target = [Token<'a>];
     fn deref(&self) -> &Self::Target {
-        &self.this
-    }
-}
-
-impl<'a, 'b> DerefMut for TokenSpan<'a, 'b> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.this
-
+        &self.tokens[self.local.clone()]
     }
 }

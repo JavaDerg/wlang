@@ -1,21 +1,21 @@
-use std::borrow::Cow;
-use std::fmt::{Debug, Formatter};
+use crate::parser::TokenSpan;
 use nom::error::{ErrorKind, ParseError};
 use nom::Offset;
+use std::borrow::Cow;
+use std::fmt::{Debug, Formatter};
 use w_tokenize::{Span, Token};
-use crate::parser::TokenSpan;
 
-pub struct ErrorChain<'token, 'slice> {
-    err_acc: Vec<Error<'token, 'slice>>,
+pub struct ErrorChain<'a> {
+    err_acc: Vec<Error<'a>>,
 }
 
-pub struct Error<'a, 'b> {
-    pub location: TokenSpan<'a, 'b>,
+pub struct Error<'a> {
+    pub location: TokenSpan<'a>,
     pub reason: Cow<'static, str>,
 }
 
-impl<'a, 'b> Error<'a, 'b> {
-    pub fn new(location: TokenSpan<'a, 'b>, reason: impl Into<Cow<'static, str>>) -> Self {
+impl<'a, 'b> Error<'a> {
+    pub fn new(location: TokenSpan<'a>, reason: impl Into<Cow<'static, str>>) -> Self {
         Self {
             location,
             reason: reason.into(),
@@ -23,38 +23,36 @@ impl<'a, 'b> Error<'a, 'b> {
     }
 }
 
-impl<'a, 'b> ErrorChain<'a, 'b> {
+impl<'a, 'b> ErrorChain<'a> {
     pub fn has_errs(&self) -> bool {
         !self.err_acc.is_empty()
     }
 
-    pub fn put_errs(&mut self, mut other: ErrorChain<'a, 'b>) {
+    pub fn put_errs(&mut self, mut other: ErrorChain<'a>) {
         self.err_acc.append(&mut other.err_acc);
     }
 }
 
-impl<'a, 'b> From<Error<'a, 'b>> for ErrorChain<'a, 'b> {
-    fn from(err: Error<'a, 'b>) -> Self {
-        Self {
-            err_acc: vec![err],
-        }
+impl<'a, 'b> From<Error<'a>> for ErrorChain<'a> {
+    fn from(err: Error<'a>) -> Self {
+        Self { err_acc: vec![err] }
     }
 }
 
-impl<'a, 'b> ParseError<TokenSpan<'a, 'b>> for ErrorChain<'a, 'b> {
-    fn from_error_kind(input: TokenSpan<'a, 'b>, kind: ErrorKind) -> Self {
+impl<'a, 'b> ParseError<TokenSpan<'a>> for ErrorChain<'a> {
+    fn from_error_kind(input: TokenSpan<'a>, kind: ErrorKind) -> Self {
         Self {
             err_acc: vec![Error::new(input, format!("{:?}", kind))],
         }
     }
 
-    fn append(input: TokenSpan<'a, 'b>, kind: ErrorKind, mut other: Self) -> Self {
+    fn append(input: TokenSpan<'a>, kind: ErrorKind, mut other: Self) -> Self {
         other.err_acc.push(Error::new(input, format!("{:?}", kind)));
         other
     }
 }
 
-impl<'a, 'b> Debug for ErrorChain<'a, 'b> {
+impl<'a, 'b> Debug for ErrorChain<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for err in &self.err_acc {
             writeln!(f, "{:?}", err)?;
@@ -63,7 +61,7 @@ impl<'a, 'b> Debug for ErrorChain<'a, 'b> {
     }
 }
 
-impl<'a, 'b> Debug for Error<'a, 'b> {
+impl<'a, 'b> Debug for Error<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Error: {}", self.reason)?;
         if self.location.is_empty() {
@@ -71,7 +69,7 @@ impl<'a, 'b> Debug for Error<'a, 'b> {
             return Ok(());
         }
 
-        let last_t = &self.location.this[0].span;
+        let last_t = &self.location[0].span;
         let top_lines = (last_t.location_line() - 1).saturating_sub(3);
         let top_offset = (last_t.location_line() - 1) - top_lines;
         let mut lines = self.location.file.lines().skip(top_lines as usize);
@@ -85,7 +83,10 @@ impl<'a, 'b> Debug for Error<'a, 'b> {
         let line_offset = (*self.location.file).offset(main);
         let offset = last_t.location_offset() - line_offset;
 
-        writeln!(f, "At {top_lines}:{offset}\n--------------------------------")?;
+        writeln!(
+            f,
+            "At {top_lines}:{offset}\n--------------------------------"
+        )?;
 
         for line in tmp {
             writeln!(f, "{line}")?;

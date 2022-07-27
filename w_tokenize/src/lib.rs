@@ -2,16 +2,16 @@
 
 extern crate core;
 
-use std::rc::Rc;
 use nom::bytes::complete::{is_not, tag, take_while, take_while_m_n};
 use nom::character::complete::{anychar, char};
 use nom::combinator::{map, not, opt, peek};
+use std::rc::Rc;
 
 use nom::branch::alt;
 use nom::complete::take;
 use nom::multi::{fold_many0, many0};
 use nom::sequence::{delimited, pair, preceded, terminated};
-use nom::{Err, InputLength, IResult, Offset, Parser, Slice};
+use nom::{Err, IResult, InputLength, Offset, Parser, Slice};
 
 mod error;
 mod identifier;
@@ -41,7 +41,7 @@ pub enum Kind<'a> {
     Ident,
 
     /// `::`
-    Names,
+    DoubleCol,
 
     /// `:=`
     Define,
@@ -49,12 +49,12 @@ pub enum Kind<'a> {
     Set,
 
     /// `,`
-    Sep,
+    Comma,
     /// `;`
-    Sim,
+    Semicolon,
 
     /// `.`
-    Call,
+    Dot,
 
     // Math operands
     /// `+`
@@ -221,11 +221,11 @@ fn token(i: Span) -> TokResult<Option<Token>> {
         )),
         // other
         alt((
-            op("::", ":=", || Kind::Names),
+            op("::", ":=", || Kind::DoubleCol),
             op(":=", ":=", || Kind::Define),
-            op(",", "", || Kind::Sep),
-            op(".", "", || Kind::Call),
-            op(";", "", || Kind::Sim),
+            op(",", "", || Kind::Comma),
+            op(".", "", || Kind::Dot),
+            op(";", "", || Kind::Semicolon),
             op("=", "", || Kind::Set),
         )),
     ))(i.clone());
@@ -298,19 +298,30 @@ fn parsed_delimited(oi: Span, start: char, end: char) -> TokResult<(Span, Vec<To
     loop {
         match token(i.clone()) {
             Ok((ni, token)) => {
-                if let Some(token) = token { acc.push(token) };
+                if let Some(token) = token {
+                    acc.push(token)
+                };
                 i = ni;
-            },
+            }
             Err(Err::Error(mut err) | Err::Failure(mut err)) => {
-                err.reason = Some(format!("failure to parse at {}:{}", i.location_line(), i.location_offset()).into());
+                err.reason = Some(
+                    format!(
+                        "failure to parse at {}:{}",
+                        i.location_line(),
+                        i.location_offset()
+                    )
+                    .into(),
+                );
                 let err = TokenError {
                     span: oi,
                     kind: TokenErrorKind::Other(Box::new(err)),
-                    reason: Some("Failed to parse delimited section due to unparseable token inside".into())
+                    reason: Some(
+                        "Failed to parse delimited section due to unparseable token inside".into(),
+                    ),
                 };
                 last_err = Some(Err(Err::Failure(err)));
                 break;
-            },
+            }
             err @ Err(_) => {
                 return err.map(|_| unreachable!());
             }
@@ -388,12 +399,12 @@ impl<'a> Kind<'a> {
     pub fn cmp_id(&self) -> u32 {
         match self {
             Kind::Ident => 0,
-            Kind::Names => 1,
+            Kind::DoubleCol => 1,
             Kind::Define => 2,
             Kind::Set => 3,
-            Kind::Sep => 4,
-            Kind::Sim => 5,
-            Kind::Call => 6,
+            Kind::Comma => 4,
+            Kind::Semicolon => 5,
+            Kind::Dot => 6,
             Kind::Add => 7,
             Kind::Sub => 8,
             Kind::Mul => 9,
@@ -426,7 +437,7 @@ impl<'a> Kind<'a> {
             Kind::Tuple(_) => 36,
             Kind::Block(_) => 37,
             Kind::String(_) => 38,
-            Kind::Number(_) => 39
+            Kind::Number(_) => 39,
         }
     }
 }

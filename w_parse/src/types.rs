@@ -1,12 +1,13 @@
+use crate::{parse_identifier, Identifier, ParResult, TokenSpan, Weak};
+use assert_matches::assert_matches;
+use nom::branch::alt;
+use nom::combinator::{map, opt, verify};
+use nom::multi::{many0, many1, separated_list0};
+use nom::sequence::{pair, terminated};
+use nom::Parser;
 use std::collections::HashMap;
 use std::rc::Rc;
-use nom::branch::alt;
-use nom::combinator::{map, verify};
-use nom::multi::many1;
-use nom::Parser;
-use w_tokenize::{Kind, TokResult};
-use crate::{Identifier, ParResult, TokenSpan, Weak};
-use assert_matches::assert_matches;
+use w_tokenize::{Kind, Token, TokResult};
 
 pub enum Type<'a> {
     Regular(RegularType<'a>),
@@ -33,21 +34,27 @@ pub fn parse_type(i: TokenSpan) -> ParResult<Type> {
 }
 
 fn parse_regular_type(i: TokenSpan) -> ParResult<RegularType> {
-    map(many1(Weak(Kind::Ident)), RegularType)(i)
+    map(many1(parse_identifier), RegularType)(i)
 }
-
 
 fn parse_struct_type(i: TokenSpan) -> ParResult<StructType> {
     let (i, _) = verify(Weak(Kind::Ident), |t| *t.span == "struct")(i)?;
+
     let (i, block) = Weak(Kind::Block(Rc::from([]))).parse(i)?;
     let block_tokens = assert_matches!(block.kind, Kind::Block(tk) => tk);
 
+    let block_span = TokenSpan::new(i.file, block_tokens);
+    let (i, fields) = parse_struct_block(block_span)?;
+
+    Ok((i, StructType(fields)))
 }
 
-fn parse_block(i: TokenSpan) -> ParResult<Vec<(Identifier, Type)>> {
-    todo!()
+fn parse_struct_block(i: TokenSpan) -> ParResult<Vec<(Identifier, Type)>> {
+    terminated(
+        separated_list0(Weak(Kind::Comma), pair(parse_identifier, parse_type)),
+        opt(Weak(Kind::Comma)),
+    )(i)
 }
-
 
 fn parse_tuple_type(i: TokenSpan) -> ParResult<TupleType> {
     todo!()
