@@ -1,6 +1,9 @@
 extern "__buildin__" trap :: func() !;
 extern "custom_test" printnum :: func(u32);
 
+// trap :: extern "__buildin__" func() !;
+// trap :: @extern("__buildin__") func() !;
+
 main :: func() {
     a := some(69)
     b := a.bind(func(a) {
