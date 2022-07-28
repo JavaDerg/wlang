@@ -12,7 +12,7 @@ pub type ParResult<'a, T = TokenSpan<'a>> = IResult<TokenSpan<'a>, T, ErrorChain
 pub struct TokenSpan<'a> {
     pub(crate) file: Span<'a>,
     pub(crate) local: Range<usize>,
-    pub(crate) tokens: Rc<[Token<'a>]>
+    pub(crate) tokens: Rc<[Token<'a>]>,
 }
 
 impl<'a> TokenSpan<'a> {
@@ -20,7 +20,7 @@ impl<'a> TokenSpan<'a> {
         TokenSpan {
             file,
             local: 0..tokens.len(),
-            tokens
+            tokens,
         }
     }
 }
@@ -46,15 +46,18 @@ impl<'a> InputTake for TokenSpan<'a> {
         let mid = self.local.start + count;
         let right = self.tokens.len();
 
-        (Self {
-            file: self.file,
-            local: mid..right,
-            tokens: self.tokens.clone(),
-        }, Self {
-            file: self.file,
-            local: left..mid,
-            tokens: self.tokens.clone(),
-        })
+        (
+            Self {
+                file: self.file,
+                local: mid..right,
+                tokens: self.tokens.clone(),
+            },
+            Self {
+                file: self.file,
+                local: left..mid,
+                tokens: self.tokens.clone(),
+            },
+        )
     }
 }
 
@@ -143,10 +146,7 @@ impl<'a, 'c> Compare<Weak<'c>> for TokenSpan<'a> {
 }
 
 impl<'a, 'b> Parser<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> for Strong<'b> {
-    fn parse(
-        &mut self,
-        input: TokenSpan<'a>,
-    ) -> IResult<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> {
+    fn parse(&mut self, input: TokenSpan<'a>) -> IResult<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> {
         if input.is_empty() {
             Err(Err::Error(ErrorChain::from(Error::new(
                 input,
@@ -166,10 +166,7 @@ impl<'a, 'b> Parser<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> for Strong<'b> {
     }
 }
 impl<'a, 'b> Parser<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> for Weak<'b> {
-    fn parse(
-        &mut self,
-        input: TokenSpan<'a>,
-    ) -> IResult<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> {
+    fn parse(&mut self, input: TokenSpan<'a>) -> IResult<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> {
         if input.is_empty() {
             Err(Err::Error(ErrorChain::from(Error::new(
                 input,

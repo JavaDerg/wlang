@@ -139,6 +139,7 @@ name = "w_parse"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
+ "either",
  "nom",
  "w_tokenize",
 ]
