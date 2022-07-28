@@ -9,7 +9,10 @@ use nom::character::complete::char;
 use nom::Parser;
 use std::collections::HashMap;
 use std::rc::Rc;
+use nom::combinator::verify;
+use nom::multi::many0;
 use w_tokenize::{Kind, Span, TokResult, Token};
+use crate::types::parse_type;
 
 pub type SVec<T> = Rc<[T]>;
 
@@ -25,8 +28,17 @@ fn svconv<T>(v: Vec<T>) -> Rc<[T]> {
 }
 
 pub fn parse(i: TokenSpan) -> ParResult<()> {
-    let (i, test) = tag(Weak(Kind::Ident))(i)?;
+
     Ok((i, ()))
+}
+
+pub fn parse_common(i: TokenSpan) -> ParResult {
+    let (i, name) = parse_identifier(i)?;
+    let (i, generics) = many0(parse_identifier)(i)?;
+    let (i, _) = Weak(Kind::DoubleCol).parse(i)?;
+    let (i, ty) = parse_type(i)?;
+
+
 }
 
 fn parse_identifier(i: TokenSpan) -> ParResult<Identifier> {

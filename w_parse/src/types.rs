@@ -1,7 +1,7 @@
 use crate::{parse_identifier, Identifier, ParResult, TokenSpan, Weak};
 use assert_matches::assert_matches;
 use nom::branch::alt;
-use nom::combinator::{map, opt, verify};
+use nom::combinator::{all_consuming, map, opt, verify};
 use nom::multi::{many0, many1, separated_list0};
 use nom::sequence::{pair, terminated};
 use nom::Parser;
@@ -20,8 +20,8 @@ pub struct RegularType<'a>(Vec<Identifier<'a>>);
 pub struct StructType<'a>(Vec<(Identifier<'a>, Type<'a>)>);
 pub struct TupleType<'a>(Vec<Type<'a>>);
 pub struct FunctionType<'a> {
-    args: Vec<(Identifier<'a>, RegularType<'a>)>,
-    result: RegularType<'a>,
+    args: Vec<(Identifier<'a>, Type<'a>)>,
+    result: Type<'a>,
 }
 
 pub fn parse_type(i: TokenSpan) -> ParResult<Type> {
@@ -50,10 +50,10 @@ fn parse_struct_type(i: TokenSpan) -> ParResult<StructType> {
 }
 
 fn parse_struct_block(i: TokenSpan) -> ParResult<Vec<(Identifier, Type)>> {
-    terminated(
+    all_consuming(terminated(
         separated_list0(Weak(Kind::Comma), pair(parse_identifier, parse_type)),
         opt(Weak(Kind::Comma)),
-    )(i)
+    ))(i)
 }
 
 fn parse_tuple_type(i: TokenSpan) -> ParResult<TupleType> {
@@ -67,12 +67,31 @@ fn parse_tuple_type(i: TokenSpan) -> ParResult<TupleType> {
 }
 
 fn parse_tuple_inner(i: TokenSpan) -> ParResult<Vec<Type>> {
-    terminated(
+    all_consuming(terminated(
         separated_list0(Weak(Kind::Comma), parse_type),
         opt(Weak(Kind::Comma)),
-    )(i)
+    ))(i)
 }
 
 fn parse_function_type(i: TokenSpan) -> ParResult<FunctionType> {
-    todo!()
+    let (i, _) = verify(Weak(Kind::Ident), |t| *t.span == "func")(i)?;
+    let (i, block) = Weak(Kind::Tuple(Rc::from([]))).parse(i)?;
+    let tuple_tokens = assert_matches!(block.kind, Kind::Block(tk) => tk);
+    let tuple_span = TokenSpan::new(i.file, tuple_tokens);
+
+    let (i, args) = parse_function_args(tuple_span)?;
+
+    let (i, result) = parse_type(i)?;
+
+    Ok((i, FunctionType {
+        args,
+        result
+    }))
+}
+
+fn parse_function_args(i: TokenSpan) -> ParResult<Vec<(Identifier, Type)>> {
+    all_consuming(terminated(
+        separated_list0(Weak(Kind::Comma), pair(parse_identifier, parse_type)),
+        opt(Weak(Kind::Comma)),
+    ))(i)
 }
