@@ -1,18 +1,32 @@
 // this syntax is experimental and probably wont happen, or maybe it will idfk
 
-printable Self :: trait {
-	as_string func(self *Self) string;
-	println func(self *Self) {
-		println(self.as_string);
+compare A B :: trait {
+	eq func(a *A, b *B) bool;
+	neq func(a *A, b *B) bool {
+		!a.eq(b)
 	}
 }
 
-test :: struct {
-	num u32,
+packet :: struct {
+	id u32,
 }
 
-impl :: printable test {
-	as_string func(self *test) string {
-		num.as_string()
-	} 
+impl :: compare packet u32 {
+	eq func(a *packet, b *u32) {
+		a.id == *b
+	}
+}
+
+impl A B (compare A B) :: (==) {
+	(==) func(left *A, right *B) {
+		left.eq(right)
+	}
+}
+
+main :: func() {
+	p1 := packet {
+		id = 69,
+	};
+
+	p1.eq(&69);
 }
