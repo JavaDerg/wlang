@@ -35,6 +35,7 @@ pub struct FunctionType<'a> {
 pub fn parse_type(i: TokenSpan) -> ParResult<Type> {
     alt((
         map(parse_struct_type, Type::Struct),
+        map(parse_enum_type, Type::Enum),
         map(parse_function_type, Type::Function),
         map(parse_tuple_type, Type::Tuple),
         map(parse_regular_type, Type::Regular),
@@ -69,7 +70,7 @@ fn parse_struct_block(i: TokenSpan) -> ParResult<Vec<(Identifier, Type)>> {
 
 fn parse_enum_type(
     i: TokenSpan,
-) -> ParResult<Vec<(Identifier, Option<Either<TupleType, StructType>>)>> {
+) -> ParResult<EnumType> {
     let (i, _) = verify(Weak(Kind::Ident), |t| *t.span == "enum")(i)?;
 
     let (i, block) = Weak(Kind::Block(Rc::from([]))).parse(i)?;
@@ -77,7 +78,9 @@ fn parse_enum_type(
 
     let block_span = TokenSpan::new(i.file, block_tokens);
 
-    parse_enum_block(block_span)
+    let (i, block) = parse_enum_block(block_span)?;
+
+    Ok((i, EnumType(block)))
 }
 
 fn parse_enum_block(
