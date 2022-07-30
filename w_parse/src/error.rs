@@ -3,7 +3,6 @@ use nom::error::{ErrorKind, ParseError};
 use nom::Offset;
 use std::borrow::Cow;
 use std::fmt::{Debug, Formatter};
-use w_tokenize::{Span, Token};
 
 pub struct ErrorChain<'a> {
     err_acc: Vec<Error<'a>>,
@@ -14,7 +13,7 @@ pub struct Error<'a> {
     pub reason: Cow<'static, str>,
 }
 
-impl<'a, 'b> Error<'a> {
+impl<'a> Error<'a> {
     pub fn new(location: TokenSpan<'a>, reason: impl Into<Cow<'static, str>>) -> Self {
         Self {
             location,
@@ -23,7 +22,7 @@ impl<'a, 'b> Error<'a> {
     }
 }
 
-impl<'a, 'b> ErrorChain<'a> {
+impl<'a> ErrorChain<'a> {
     pub fn has_errs(&self) -> bool {
         !self.err_acc.is_empty()
     }
@@ -33,13 +32,13 @@ impl<'a, 'b> ErrorChain<'a> {
     }
 }
 
-impl<'a, 'b> From<Error<'a>> for ErrorChain<'a> {
+impl<'a> From<Error<'a>> for ErrorChain<'a> {
     fn from(err: Error<'a>) -> Self {
         Self { err_acc: vec![err] }
     }
 }
 
-impl<'a, 'b> ParseError<TokenSpan<'a>> for ErrorChain<'a> {
+impl<'a> ParseError<TokenSpan<'a>> for ErrorChain<'a> {
     fn from_error_kind(input: TokenSpan<'a>, kind: ErrorKind) -> Self {
         Self {
             err_acc: vec![Error::new(input, format!("{:?}", kind))],
@@ -52,7 +51,7 @@ impl<'a, 'b> ParseError<TokenSpan<'a>> for ErrorChain<'a> {
     }
 }
 
-impl<'a, 'b> Debug for ErrorChain<'a> {
+impl<'a> Debug for ErrorChain<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for err in &self.err_acc {
             writeln!(f, "{:?}", err)?;
@@ -61,7 +60,7 @@ impl<'a, 'b> Debug for ErrorChain<'a> {
     }
 }
 
-impl<'a, 'b> Debug for Error<'a> {
+impl<'a> Debug for Error<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Error: {}", self.reason)?;
         if self.location.is_empty() {

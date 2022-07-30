@@ -1,7 +1,6 @@
 use crate::error::{Error, ErrorChain};
-use nom::bytes::complete::tag;
 use nom::{Compare, CompareResult, Err, IResult, InputLength, InputTake, Parser, Offset, Slice};
-use std::ops::{Deref, DerefMut, Range, RangeTo};
+use std::ops::{Deref, Range, RangeTo};
 use std::rc::Rc;
 use std::string::ParseError;
 use w_tokenize::{Kind, Span, Token};
