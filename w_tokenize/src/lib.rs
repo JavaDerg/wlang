@@ -3,14 +3,14 @@
 extern crate core;
 
 use nom::bytes::complete::{is_not, tag, take_while, take_while_m_n};
-use nom::character::complete::{anychar, char};
-use nom::combinator::{map, not, opt, peek};
+use nom::character::complete::{char};
+use nom::combinator::{map, not, opt};
 use std::rc::Rc;
 
 use nom::branch::alt;
-use nom::complete::take;
+
 use nom::multi::{fold_many0, many0};
-use nom::sequence::{delimited, pair, preceded, terminated};
+use nom::sequence::{delimited, pair, terminated};
 use nom::{Err, IResult, InputLength, Offset, Parser, Slice};
 
 mod error;
