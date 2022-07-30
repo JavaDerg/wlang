@@ -22,7 +22,8 @@ mod tests;
 
 use crate::error::{TokenError, TokenErrorKind};
 use crate::identifier::parse_ident;
-use crate::number::{parse_integer, Number};
+use crate::number::parse_integer;
+pub use crate::number::Number;
 use crate::string::parse_string;
 use error::ToTokenError;
 

@@ -1,7 +1,7 @@
 use crate::error::{Error, ErrorChain};
 use nom::bytes::complete::tag;
-use nom::{Compare, CompareResult, Err, IResult, InputLength, InputTake, Parser};
-use std::ops::{Deref, DerefMut, Range};
+use nom::{Compare, CompareResult, Err, IResult, InputLength, InputTake, Parser, Offset, Slice};
+use std::ops::{Deref, DerefMut, Range, RangeTo};
 use std::rc::Rc;
 use std::string::ParseError;
 use w_tokenize::{Kind, Span, Token};
@@ -21,6 +21,45 @@ impl<'a> TokenSpan<'a> {
             file,
             local: 0..tokens.len(),
             tokens,
+        }
+    }
+}
+
+impl<'a> Offset for TokenSpan<'a> {
+    fn offset(&self, second: &Self) -> usize {
+         second.local.start - self.local.start
+    }
+}
+
+impl<'a> Slice<Range<usize>> for TokenSpan<'a> {
+    fn slice(&self, range: Range<usize>) -> Self {
+        let offset_start = self.local.start + range.start;
+        let offset_end = self.local.start + range.end;
+
+        if offset_start > self.local.end || offset_end > self.local.end {
+            panic!("out of range");
+        }
+
+        TokenSpan {
+            file: self.file,
+            local: offset_start..offset_end,
+            tokens: self.tokens.clone(),
+        }
+    }
+}
+
+impl<'a> Slice<RangeTo<usize>> for TokenSpan<'a> {
+    fn slice(&self, range: RangeTo<usize>) -> Self {
+        let offset_end = self.local.start + range.end;
+
+        if offset_end > self.local.end {
+            panic!("out of range");
+        }
+
+        TokenSpan {
+            file: self.file,
+            local: self.local.start..offset_end,
+            tokens: self.tokens.clone(),
         }
     }
 }

@@ -1,7 +1,7 @@
-extern "__buildin__" trap func() !;
-extern "custom_test" printnum func(u32);
+trap :: @extern("__buildin__") func() !;
+printnum :: @extern("custom_test") func(u32);
 
-main func() {
+main :: func() {
     a := some(69)
     b := a.bind(func(a) {
             t := a * 69
@@ -16,28 +16,28 @@ main func() {
     printnum(b.unwrap());
 }
 
-option A enum {
+option<A> :: enum {
     some(A),
     none,
 }
 
-map A B func(A) B;
+map<A, B> :: func(A) B;
 
-map A B func(self option A, f map A B) option B {
+map<A, B> :: func(self option A, f map A B) option B {
     if some(a) := self
         some(f(a))
     else
         none
 }
 
-bind A B func(self option A, f map A option B) option B {
-    if some(a) := self
+bind<A, B> :: func(self option<A>, f map<A, option<B>>) option<B> {
+    if some a := self
         f(a)
     else
         none
 }
 
-unwrap A func(self option A) A {
+unwrap<A> :: func(self option A) A {
     if some(a) := self
         a
     else
