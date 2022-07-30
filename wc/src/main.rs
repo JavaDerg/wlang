@@ -1,3 +1,5 @@
+#![cfg_attr(debug_assertions, allow(dead_code))]
+
 use std::rc::Rc;
 use w_parse::{parse, TokenSpan};
 use w_tokenize::{tokenize, Span};
