@@ -1,6 +1,5 @@
-use crate::{parse_identifier, Identifier, ParResult, TokenSpan, Weak, parse_name};
+use crate::{parse_identifier, parse_name, Identifier, ParResult, TokenSpan, Weak};
 use assert_matches::assert_matches;
-
 use nom::branch::alt;
 use nom::combinator::{all_consuming, consumed, map, opt, verify};
 use nom::multi::{many0, separated_list0};
@@ -8,7 +7,7 @@ use nom::sequence::{pair, terminated};
 use nom::{Offset, Parser, Slice};
 
 use std::rc::Rc;
-use w_tokenize::{Kind, Number};
+use w_tokenize::{Kind, Number, Span};
 
 pub enum Type<'a> {
     Regular(RegularType<'a>),
@@ -27,7 +26,10 @@ pub struct RegularType<'a> {
     pub generics: Vec<Type<'a>>,
 }
 pub struct StructType<'a>(pub TokenSpan<'a>, pub Vec<(Identifier<'a>, Type<'a>)>);
-pub struct EnumType<'a>(pub TokenSpan<'a>, pub Vec<(Identifier<'a>, Option<Type<'a>>)>);
+pub struct EnumType<'a>(
+    pub TokenSpan<'a>,
+    pub Vec<(Identifier<'a>, Option<Type<'a>>)>,
+);
 pub struct TupleType<'a>(pub TokenSpan<'a>, pub Vec<Type<'a>>);
 pub struct FunctionType<'a> {
     pub span: TokenSpan<'a>,
@@ -54,8 +56,32 @@ pub fn parse_type(i: TokenSpan) -> ParResult<Type> {
         map(parse_tuple_type, Type::Tuple),
         map(parse_regular_type, Type::Regular),
         map(parse_pointer_type, Type::Pointer),
+        map(parse_array_type, Type::Array),
         map(parse_never_type, Type::Never),
     ))(i)
+}
+
+fn parse_array_type(oi: TokenSpan) -> ParResult<ArrayType> {
+    let (i, block) = Weak(Kind::Tuple(Rc::from([]))).parse(oi.clone())?;
+    let block_tokens = assert_matches!(block.kind, Kind::Array(tk) => tk);
+
+    let block_span = TokenSpan::new(i.file, block_tokens);
+    // this is kinda dumb, eh
+    let (_, size) = opt(map(
+        all_consuming(Weak(Kind::Number(Number {
+            number: Span::new(""),
+            suffix: None,
+            base: None,
+        }))),
+        |tk| assert_matches!(size.kind, Kind::Number(num) => num),
+    ))(block_span)?;
+
+    let (i, kind) = map(parse_type, Box::new)(i)?;
+
+    let offset = oi.offset(&i);
+    let span = oi.slice(..offset);
+
+    Ok((i, ArrayType { span, kind, size }))
 }
 
 fn parse_pointer_type(i: TokenSpan) -> ParResult<PointerType> {
@@ -63,15 +89,18 @@ fn parse_pointer_type(i: TokenSpan) -> ParResult<PointerType> {
     let (i, mut_) = opt(verify(parse_identifier, |ident| *ident.0 == "mut"))(i)?;
     let (i, ty) = parse_type(i)?;
 
-    Ok((i, PointerType {
-        span,
-        to: Box::new(ty),
-        mutable: mut_,
-    }))
+    Ok((
+        i,
+        PointerType {
+            span,
+            to: Box::new(ty),
+            mutable: mut_,
+        },
+    ))
 }
 
 fn parse_never_type(i: TokenSpan) -> ParResult<NeverType> {
-    map(consumed(Weak(Kind::Not)), |(span, _)|  NeverType(span))(i)
+    map(consumed(Weak(Kind::Not)), |(span, _)| NeverType(span))(i)
 }
 
 fn parse_regular_type(oi: TokenSpan) -> ParResult<RegularType> {
@@ -81,11 +110,14 @@ fn parse_regular_type(oi: TokenSpan) -> ParResult<RegularType> {
     let offset = oi.offset(&i);
     let span = oi.slice(..offset);
 
-    Ok((i, RegularType {
-        span,
-        ty_name,
-        generics
-    }))
+    Ok((
+        i,
+        RegularType {
+            span,
+            ty_name,
+            generics,
+        },
+    ))
 }
 
 fn parse_struct_type(oi: TokenSpan) -> ParResult<StructType> {
@@ -95,7 +127,7 @@ fn parse_struct_type(oi: TokenSpan) -> ParResult<StructType> {
     let block_tokens = assert_matches!(block.kind, Kind::Block(tk) => tk);
 
     let block_span = TokenSpan::new(i.file, block_tokens);
-    let (i, fields) = parse_struct_block(block_span)?;
+    let (i, fields) = parse_named_type_list(block_span)?;
 
     let offset = oi.offset(&i);
     let span = oi.slice(..offset);
@@ -103,7 +135,7 @@ fn parse_struct_type(oi: TokenSpan) -> ParResult<StructType> {
     Ok((i, StructType(span, fields)))
 }
 
-fn parse_struct_block(i: TokenSpan) -> ParResult<Vec<(Identifier, Type)>> {
+fn parse_named_type_list(i: TokenSpan) -> ParResult<Vec<(Identifier, Type)>> {
     all_consuming(terminated(
         separated_list0(Weak(Kind::Comma), pair(parse_name, parse_type)),
         opt(Weak(Kind::Comma)),
@@ -118,7 +150,7 @@ fn parse_enum_type(oi: TokenSpan) -> ParResult<EnumType> {
 
     let block_span = TokenSpan::new(i.file, block_tokens);
 
-    let (i, block) = parse_enum_block(block_span)?;
+    let (i, block) = parse_named_type_list(block_span)?;
 
     let offset = oi.offset(&i);
     let span = oi.slice(..offset);
@@ -126,19 +158,12 @@ fn parse_enum_type(oi: TokenSpan) -> ParResult<EnumType> {
     Ok((i, EnumType(span, block)))
 }
 
-fn parse_enum_block(i: TokenSpan) -> ParResult<Vec<(Identifier, Option<Type>)>> {
-    all_consuming(terminated(
-        separated_list0(Weak(Kind::Comma), pair(parse_name, opt(parse_type))),
-        opt(Weak(Kind::Comma)),
-    ))(i)
-}
-
 fn parse_tuple_type(oi: TokenSpan) -> ParResult<TupleType> {
     let (i, block) = Weak(Kind::Tuple(Rc::from([]))).parse(oi.clone())?;
     let block_tokens = assert_matches!(block.kind, Kind::Tuple(tk) => tk);
 
     let block_span = TokenSpan::new(i.file, block_tokens);
-    let (i, fields) = parse_tuple_inner(block_span)?;
+    let (i, fields) = parse_type_list(block_span)?;
 
     let offset = oi.offset(&i);
     let span = oi.slice(..offset);
@@ -146,7 +171,7 @@ fn parse_tuple_type(oi: TokenSpan) -> ParResult<TupleType> {
     Ok((i, TupleType(span, fields)))
 }
 
-fn parse_tuple_inner(i: TokenSpan) -> ParResult<Vec<Type>> {
+fn parse_type_list(i: TokenSpan) -> ParResult<Vec<Type>> {
     all_consuming(terminated(
         separated_list0(Weak(Kind::Comma), parse_type),
         opt(Weak(Kind::Comma)),

@@ -2,25 +2,24 @@
 
 extern crate core;
 
+mod definer;
 mod error;
+mod function;
 mod parser;
 mod types;
-mod definer;
-mod function;
 
-use std::borrow::Cow;
 use crate::parser::Weak;
 pub use crate::parser::{ParResult, TokenSpan};
 use crate::types::{parse_type, Type};
-
+use std::borrow::Cow;
 
 use nom::combinator::verify;
 
 use nom::{Err, Parser};
 
+use crate::error::{Error, ErrorChain};
 use std::rc::Rc;
 use w_tokenize::{Kind, Span};
-use crate::error::{Error, ErrorChain};
 
 pub type SVec<T> = Rc<[T]>;
 
@@ -55,12 +54,6 @@ fn parse_name(i: TokenSpan) -> ParResult<Identifier> {
 fn keyword_check(ident: &Identifier) -> bool {
     !matches!(
         *ident.0,
-        "struct"
-        | "enum"
-        | "func"
-        | "for"
-        | "loop"
-        | "if"
-        | "mut"
+        "struct" | "enum" | "func" | "for" | "loop" | "if" | "mut"
     )
 }

@@ -3,7 +3,7 @@
 extern crate core;
 
 use nom::bytes::complete::{is_not, tag, take_while, take_while_m_n};
-use nom::character::complete::{char};
+use nom::character::complete::char;
 use nom::combinator::{map, not, opt};
 use std::rc::Rc;
 
@@ -301,7 +301,7 @@ fn parse_array(oi: Span) -> TokResult<Token> {
         i,
         Token {
             span,
-            kind: Kind::Array(Rc::from(o.into_boxed_slice()))
+            kind: Kind::Array(Rc::from(o.into_boxed_slice())),
         },
     ))
 }

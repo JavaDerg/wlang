@@ -1,9 +1,5 @@
 use crate::{tokenize, Span};
 
-
-
-
-
 #[test]
 fn parses() {
     let span = Span::new(include_str!("../../WIP_tests/generics1.w"));

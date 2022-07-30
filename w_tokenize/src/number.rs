@@ -7,9 +7,9 @@ use nom::{Offset, Slice};
 
 #[derive(Debug, Clone)]
 pub struct Number<'a> {
-    number: Span<'a>,
-    suffix: Option<Span<'a>>,
-    base: Option<Span<'a>>,
+    pub number: Span<'a>,
+    pub suffix: Option<Span<'a>>,
+    pub base: Option<Span<'a>>,
 }
 
 pub fn parse_integer(i: Span) -> TokResult<(Span, Number)> {

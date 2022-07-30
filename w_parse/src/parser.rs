@@ -1,5 +1,5 @@
 use crate::error::{Error, ErrorChain};
-use nom::{Compare, CompareResult, Err, IResult, InputLength, InputTake, Parser, Offset, Slice};
+use nom::{Compare, CompareResult, Err, IResult, InputLength, InputTake, Offset, Parser, Slice};
 use std::ops::{Deref, Range, RangeTo};
 use std::rc::Rc;
 
@@ -26,7 +26,7 @@ impl<'a> TokenSpan<'a> {
 
 impl<'a> Offset for TokenSpan<'a> {
     fn offset(&self, second: &Self) -> usize {
-         second.local.start - self.local.start
+        second.local.start - self.local.start
     }
 }
 

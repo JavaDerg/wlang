@@ -1,18 +1,17 @@
-use std::rc::Rc;
+use crate::types::parse_function_type;
+use crate::{parse_identifier, parse_name, Identifier, ParResult, TokenSpan, Weak};
 use assert_matches::assert_matches;
 use nom::combinator::all_consuming;
 use nom::multi::many0;
 use nom::Parser;
+use std::rc::Rc;
 use w_tokenize::Kind;
-use crate::{Identifier, ParResult, parse_identifier, parse_name, TokenSpan, Weak};
-use crate::types::parse_function_type;
 
 pub fn parse_function(oi: TokenSpan) -> ParResult {
     let (i, _name) = parse_name(oi.clone())?;
     let (i, _generics) = many0(parse_identifier)(i)?;
     let (i, _) = Weak(Kind::DoubleCol).parse(i)?;
     let (_i, _func_head) = parse_function_type(i)?;
-
 
     todo!()
 }
@@ -22,7 +21,7 @@ pub enum Expression<'a> {
     Assignment {
         target: Identifier<'a>,
         value: Box<Expression<'a>>,
-    }
+    },
 }
 
 pub struct CodeBlock<'a>(Vec<Expression<'a>>);

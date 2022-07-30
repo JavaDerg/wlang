@@ -1,8 +1,10 @@
-use nom::combinator::{cond};
+use crate::{
+    parse_identifier, parse_name, parse_type, Identifier, ParResult, TokenSpan, Type, Weak,
+};
+use nom::combinator::cond;
 use nom::multi::many0;
 use nom::Parser;
 use w_tokenize::{Kind, Token};
-use crate::{Identifier, ParResult, parse_identifier, parse_name, parse_type, TokenSpan, Type, Weak};
 
 pub struct TypeDefiner<'a> {
     pub name: Identifier<'a>,
@@ -30,11 +32,13 @@ pub fn parse_type_definer(i: TokenSpan) -> ParResult<TypeDefiner> {
 
     let (i, sim) = cond(terminated, Weak(Kind::Semicolon))(i)?;
 
-    Ok((i, TypeDefiner {
-        name,
-        generics,
-        ty,
-        terminated: sim,
-    }))
+    Ok((
+        i,
+        TypeDefiner {
+            name,
+            generics,
+            ty,
+            terminated: sim,
+        },
+    ))
 }
-
