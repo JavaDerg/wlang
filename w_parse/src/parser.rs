@@ -69,7 +69,7 @@ impl<'a> InputTake for TokenSpan<'a> {
             panic!("TokenSpan::take: out of bounds");
         }
         Self {
-            file: self.file.clone(),
+            file: self.file,
             local: self.local.start..self.local.end + count,
             tokens: self.tokens.clone(),
         }

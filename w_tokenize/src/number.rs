@@ -27,7 +27,7 @@ fn parse_integer_inner(oi: Span) -> TokResult<(Span, Number)> {
         None => |c: char| c.is_ascii_digit(),
     };
     let (i, num) = recognize(pair(
-        take_while1(num_check.clone()),
+        take_while1(num_check),
         take_while(move |c: char| num_check(c) || c == '_'),
     ))(i)?;
     let (i, suffix) = opt(parse_suffix)(i)?;

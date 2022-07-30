@@ -229,7 +229,7 @@ fn token(i: Span) -> TokResult<Option<Token>> {
             op(";", "", || Kind::Semicolon),
             op("=", "", || Kind::Set),
         )),
-    ))(i.clone());
+    ))(i);
 
     if res.is_ok() {
         res.map(|(i, tok)| (i, Some(tok)))
@@ -245,7 +245,7 @@ fn consume_singleline_comments(mut oi: Span) -> TokResult<()> {
         let (i, _) = tag("//")(oi)?;
         let (i, _) = terminated(many0(is_not("\r\n")), whitespace)(i)?;
         oi = i;
-        if tag::<_, _, TokenError>("//")(i.clone()).is_err() {
+        if tag::<_, _, TokenError>("//")(i).is_err() {
             break;
         }
     }
@@ -295,9 +295,9 @@ fn parsed_delimited(oi: Span, start: char, end: char) -> TokResult<(Span, Vec<To
     let (mut i, _) = pair(char(start), whitespace)(oi)?;
     let mut acc = vec![];
 
-    let mut last_err = None;
+    let last_err;
     loop {
-        match token(i.clone()) {
+        match token(i) {
             Ok((ni, token)) => {
                 if let Some(token) = token {
                     acc.push(token)
@@ -330,10 +330,12 @@ fn parsed_delimited(oi: Span, start: char, end: char) -> TokResult<(Span, Vec<To
     }
 
     let (i, end_p) = opt(char(end))(i)?;
-    if end_p.is_none() && last_err.is_some() {
-        last_err.unwrap()
-    } else if end_p.is_none() {
-        Err(Err::Error(TokenError::new(i, format!("expected `{end}`"))))
+    if end_p.is_none() {
+        if let Some(err) = last_err {
+            err
+        } else {
+            Err(Err::Error(TokenError::new(i, format!("expected `{end}`"))))
+        }
     } else {
         let offset = oi.offset(&i);
         let span = Span::slice(&oi, ..offset);
