@@ -12,14 +12,14 @@ use std::borrow::Cow;
 use crate::parser::Weak;
 pub use crate::parser::{ParResult, TokenSpan};
 use crate::types::{parse_type, Type};
-use nom::bytes::complete::tag;
-use nom::character::complete::char;
+
+
 use nom::combinator::verify;
-use nom::multi::many0;
+
 use nom::{Err, Parser};
-use std::collections::HashMap;
+
 use std::rc::Rc;
-use w_tokenize::{Kind, Span, TokResult, Token};
+use w_tokenize::{Kind, Span};
 use crate::error::{Error, ErrorChain};
 
 pub type SVec<T> = Rc<[T]>;

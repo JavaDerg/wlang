@@ -2,7 +2,7 @@ use crate::error::{Error, ErrorChain};
 use nom::{Compare, CompareResult, Err, IResult, InputLength, InputTake, Parser, Offset, Slice};
 use std::ops::{Deref, Range, RangeTo};
 use std::rc::Rc;
-use std::string::ParseError;
+
 use w_tokenize::{Kind, Span, Token};
 
 pub type ParResult<'a, T = TokenSpan<'a>> = IResult<TokenSpan<'a>, T, ErrorChain<'a>>;

@@ -1,14 +1,14 @@
 use crate::{parse_identifier, Identifier, ParResult, TokenSpan, Weak, parse_name};
 use assert_matches::assert_matches;
-use either::Either;
+
 use nom::branch::alt;
 use nom::combinator::{all_consuming, consumed, map, opt, verify};
-use nom::multi::{many0, many1, separated_list0};
+use nom::multi::{many0, separated_list0};
 use nom::sequence::{pair, terminated};
 use nom::{Offset, Parser, Slice};
-use std::collections::HashMap;
+
 use std::rc::Rc;
-use w_tokenize::{Kind, Number, Token};
+use w_tokenize::{Kind, Number};
 
 pub enum Type<'a> {
     Regular(RegularType<'a>),

@@ -1,4 +1,4 @@
-use nom::combinator::{cond, peek, verify};
+use nom::combinator::{cond};
 use nom::multi::many0;
 use nom::Parser;
 use w_tokenize::{Kind, Token};

@@ -8,10 +8,10 @@ use crate::{Identifier, ParResult, parse_identifier, parse_name, TokenSpan, Weak
 use crate::types::parse_function_type;
 
 pub fn parse_function(oi: TokenSpan) -> ParResult {
-    let (i, name) = parse_name(oi.clone())?;
-    let (i, generics) = many0(parse_identifier)(i)?;
+    let (i, _name) = parse_name(oi.clone())?;
+    let (i, _generics) = many0(parse_identifier)(i)?;
     let (i, _) = Weak(Kind::DoubleCol).parse(i)?;
-    let (i, func_head) = parse_function_type(i)?;
+    let (_i, _func_head) = parse_function_type(i)?;
 
 
     todo!()
@@ -36,6 +36,6 @@ pub fn parse_code_block(i: TokenSpan) -> ParResult<CodeBlock> {
     all_consuming(parse_code_block_inner)(block_span).map(|(_, r)| (i, r))
 }
 
-pub fn parse_code_block_inner(i: TokenSpan) -> ParResult<CodeBlock> {
+pub fn parse_code_block_inner(_i: TokenSpan) -> ParResult<CodeBlock> {
     todo!()
 }
