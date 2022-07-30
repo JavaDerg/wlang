@@ -129,6 +129,8 @@ pub enum Kind<'a> {
     Tuple(Rc<[Token<'a>]>),
     /// `{TOKENS}`
     Block(Rc<[Token<'a>]>),
+    /// `[TOKENS]
+    Array(Rc<[Token<'a>]>),
 
     String(String),
     Number(Number<'a>),
@@ -172,6 +174,7 @@ fn token(i: Span) -> TokResult<Option<Token>> {
         }),
         parse_block,
         parse_tuple,
+        parse_array,
         map(parse_ident, |span| Token {
             span,
             kind: Kind::Ident,
@@ -287,6 +290,18 @@ fn parse_block(oi: Span) -> TokResult<Token> {
         Token {
             span,
             kind: Kind::Block(Rc::from(o.into_boxed_slice())),
+        },
+    ))
+}
+
+fn parse_array(oi: Span) -> TokResult<Token> {
+    let (i, (span, o)) = parsed_delimited(oi, '[', ']')?;
+
+    Ok((
+        i,
+        Token {
+            span,
+            kind: Kind::Array(Rc::from(o.into_boxed_slice()))
         },
     ))
 }
@@ -439,8 +454,9 @@ impl<'a> Kind<'a> {
             Kind::ShrAssign => 35,
             Kind::Tuple(_) => 36,
             Kind::Block(_) => 37,
-            Kind::String(_) => 38,
-            Kind::Number(_) => 39,
+            Kind::Array(_) => 38,
+            Kind::String(_) => 39,
+            Kind::Number(_) => 40,
         }
     }
 }
