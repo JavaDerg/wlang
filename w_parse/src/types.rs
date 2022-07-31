@@ -73,7 +73,7 @@ fn parse_array_type(oi: TokenSpan) -> ParResult<ArrayType> {
             suffix: None,
             base: None,
         }))),
-        |tk| assert_matches!(size.kind, Kind::Number(num) => num),
+        |tk| assert_matches!(tk.kind, Kind::Number(num) => num),
     ))(block_span)?;
 
     let (i, kind) = map(parse_type, Box::new)(i)?;
@@ -150,12 +150,19 @@ fn parse_enum_type(oi: TokenSpan) -> ParResult<EnumType> {
 
     let block_span = TokenSpan::new(i.file, block_tokens);
 
-    let (i, block) = parse_named_type_list(block_span)?;
+    let (i, block) = parse_named_opt_type_list(block_span)?;
 
     let offset = oi.offset(&i);
     let span = oi.slice(..offset);
 
     Ok((i, EnumType(span, block)))
+}
+
+fn parse_named_opt_type_list(i: TokenSpan) -> ParResult<Vec<(Identifier, Option<Type>)>> {
+    all_consuming(terminated(
+        separated_list0(Weak(Kind::Comma), pair(parse_name, opt(parse_type))),
+        opt(Weak(Kind::Comma)),
+    ))(i)
 }
 
 fn parse_tuple_type(oi: TokenSpan) -> ParResult<TupleType> {

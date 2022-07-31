@@ -1,11 +1,13 @@
 use crate::types::parse_function_type;
-use crate::{parse_identifier, parse_name, Identifier, ParResult, TokenSpan, Weak};
+use crate::{parse_identifier, parse_name, ErrorChain, Identifier, ParResult, TokenSpan, Weak, Error};
 use assert_matches::assert_matches;
-use nom::combinator::all_consuming;
-use nom::multi::many0;
-use nom::Parser;
+use nom::branch::alt;
+use nom::combinator::{all_consuming, cond, map, map_opt, opt, verify};
+use nom::multi::{many0, separated_list0, separated_list1};
+use nom::sequence::{pair, terminated};
+use nom::{Err, Parser};
 use std::rc::Rc;
-use w_tokenize::Kind;
+use w_tokenize::{Kind, Span};
 
 pub fn parse_function(oi: TokenSpan) -> ParResult {
     let (i, _name) = parse_name(oi.clone())?;
@@ -19,12 +21,155 @@ pub fn parse_function(oi: TokenSpan) -> ParResult {
 pub enum Expression<'a> {
     Scoped(CodeBlock<'a>),
     Assignment {
-        target: Identifier<'a>,
+        mutable: Option<Identifier<'a>>,
+        target: Vec<Identifier<'a>>,
         value: Box<Expression<'a>>,
     },
+    Reassignment {
+        target: Vec<Identifier<'a>>,
+        value: Box<Expression<'a>>,
+    },
+    OpReassignment {
+        target: Vec<Identifier<'a>>,
+        op: MathOp<'a>,
+        value: Box<Expression<'a>>,
+    },
+    BinaryOp {
+        lhs: Box<Expression<'a>>,
+        op: BinaryOp<'a>,
+        rhs: Box<Expression<'a>>,
+    },
+    Tuple(Vec<Expression<'a>>),
+    Accessor(Vec<Identifier<'a>>),
+    Call {
+        accessor: Vec<Identifier<'a>>,
+        args: Vec<Expression<'a>>,
+    }
 }
 
 pub struct CodeBlock<'a>(Vec<Expression<'a>>);
+
+pub struct MathOp<'a> {
+    pub span: Span<'a>,
+    pub kind: MathOpKind,
+}
+
+pub enum MathOpKind {
+    // Math operands
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+
+    // Bitwise operands
+    And,
+    Or,
+    Xor,
+    Shl,
+    Shr,
+}
+
+pub struct BinaryOp<'a> {
+    pub span: Span<'a>,
+    pub kind: BinaryOpKind,
+}
+
+pub enum BinaryOpKind {
+    Math(MathOpKind),
+    Comparison(ComparisonOpKind),
+    Logic(LogicOpKind),
+}
+
+pub enum ComparisonOpKind {
+    Eq,
+    Neq,
+    Lt,
+    Gt,
+    Le,
+    Ge,
+}
+
+pub enum LogicOpKind {
+    And,
+    Or,
+}
+
+pub fn parse_expression(i: TokenSpan) -> ParResult<Expression> {
+    parse_expression_inner(true)(i)
+}
+
+fn parse_expression_inner(binaries: bool) -> impl FnMut(TokenSpan) -> ParResult<Expression> {
+    move |i| alt((
+        map(parse_code_block, Expression::Scoped),
+        parse_assignment,
+        parse_reassignment,
+        parse_op_reassign,
+        map(parse_call, |(accessor, args)| Expression::Call {
+            accessor,
+            args,
+        }),
+        map(parse_accessor, Expression::Accessor),
+        map(parse_tuple(parse_expression), Expression::Tuple),
+        map_opt(cond(binaries, parse_binaries), |x| x)
+        // TODO,
+    ))(i)
+
+}
+
+pub fn parse_unaries(i: TokenSpan) -> ParResult<Expression> {
+    todo!("this is absolutely fucked")
+}
+
+pub fn parse_binaries(i: TokenSpan) -> ParResult<Expression> {
+    let mut exp_acc = vec![];
+    let mut op_acc = vec![];
+
+    let mut i = i;
+    loop {
+        let (ni, exop) = opt(pair(parse_expression_inner(false), parse_binary_op))(i)?;
+        i = ni;
+
+        if let Some((exp, op)) = exop {
+            exp_acc.push(exp);
+            op_acc.push(op);
+        } else {
+            break;
+        }
+    }
+
+    if exp_acc.is_empty() {
+        return Err(Err::Error(ErrorChain::from(Error::new(i, "Expected expressions seperated by binary operations"))));
+    }
+
+    let (i, last) = parse_expression_inner(false)(i)?;
+    exp_acc.push(last);
+
+    while exp_acc.len() > 1 {
+        // unwrap is safe as op_acc len always exp_acc len - 1
+        let op_prio = op_acc.iter().map(|op| op.kind.priority()).min().unwrap();
+        for i in 0..op_acc.len() {
+            if op_acc[i].kind.priority() != op_prio {
+                continue;
+            }
+
+            let op = op_acc.remove(i);
+            let lhs = exp_acc.remove(i);
+            let rhs = exp_acc.remove(i);
+
+            exp_acc.insert(i, Expression::BinaryOp {
+                lhs: Box::new(lhs),
+                op,
+                rhs: Box::new(rhs),
+            });
+        }
+    }
+
+    assert_eq!(exp_acc.len(), 1);
+    assert_eq!(op_acc.len(), 0);
+
+    Ok((i, exp_acc.pop().unwrap()))
+}
 
 pub fn parse_code_block(i: TokenSpan) -> ParResult<CodeBlock> {
     let (i, block) = Weak(Kind::Block(Rc::from([]))).parse(i)?;
@@ -37,4 +182,201 @@ pub fn parse_code_block(i: TokenSpan) -> ParResult<CodeBlock> {
 
 pub fn parse_code_block_inner(_i: TokenSpan) -> ParResult<CodeBlock> {
     todo!()
+}
+
+pub fn parse_assignment(i: TokenSpan) -> ParResult<Expression> {
+    let (i, mutable) = opt(parse_specific("mut"))(i)?;
+    let (i, target) = alt((map(parse_name, |name| vec![name]), parse_tuple(parse_name)))(i)?;
+
+    let (i, _) = Weak(Kind::Define).parse(i)?;
+
+    let (i, value) = parse_expression(i)?;
+
+    Ok((i, Expression::Assignment {
+        mutable,
+        target,
+        value: Box::new(value),
+    }))
+}
+
+pub fn parse_reassignment(i: TokenSpan) -> ParResult<Expression> {
+    let (i, target) = alt((map(parse_name, |name| vec![name]), parse_tuple(parse_name)))(i)?;
+
+    let (i, _) = Weak(Kind::Set).parse(i)?;
+
+    let (i, value) = parse_expression(i)?;
+
+    Ok((i, Expression::Reassignment {
+        target,
+        value: Box::new(value),
+    }))
+}
+
+pub fn parse_op_reassign(i: TokenSpan) -> ParResult<Expression> {
+    let (i, target) = alt((map(parse_name, |name| vec![name]), parse_tuple(parse_name)))(i)?;
+
+    let (i, op_tk) = alt((
+        Weak(Kind::AddAssign),
+        Weak(Kind::SubAssign),
+        Weak(Kind::MulAssign),
+        Weak(Kind::DivAssign),
+        Weak(Kind::ModAssign),
+
+        Weak(Kind::AndAssign),
+        Weak(Kind::OrAssign),
+        Weak(Kind::XorAssign),
+        Weak(Kind::ShlAssign),
+        Weak(Kind::ShrAssign),
+    ))(i)?;
+
+    let (i, value) = parse_expression(i)?;
+
+    Ok((
+        i,
+        Expression::OpReassignment {
+            target,
+            op: MathOp {
+                span: op_tk.span,
+                kind: op_tk.kind.try_into().unwrap(),
+            },
+            value: Box::new(value)
+        }
+    ))
+}
+
+pub fn parse_tuple<'a, F, O: 'a>(parser: F) -> impl FnMut(TokenSpan<'a>) -> ParResult<Vec<O>>
+where
+    F: Parser<TokenSpan<'a>, O, ErrorChain<'a>> + Clone,
+{
+    move |i| {
+        let (i, block) = Weak(Kind::Tuple(Rc::from([]))).parse(i)?;
+        let block_tokens = assert_matches!(block.kind, Kind::Tuple(tk) => tk);
+
+        let block_span = TokenSpan::new(i.file, block_tokens);
+
+        all_consuming(terminated(
+            separated_list0(Weak(Kind::Comma), parser.clone()),
+            opt(Weak(Kind::Comma)),
+        ))(block_span)
+        .map(|(_, o)| (i, o))
+    }
+}
+
+pub fn parse_accessor(i: TokenSpan) -> ParResult<Vec<Identifier>> {
+    separated_list1(Weak(Kind::Dot), parse_name)(i)
+}
+
+pub fn parse_call(i: TokenSpan) -> ParResult<(Vec<Identifier>, Vec<Expression>)> {
+    let (i, accessor) = parse_accessor(i)?;
+    let (i, args) = parse_tuple(parse_expression)(i)?;
+    Ok((i, (accessor, args)))
+}
+
+pub fn parse_specific(
+    specific: &str,
+) -> impl FnMut(TokenSpan) -> ParResult<Identifier> + '_ {
+    move |i| verify(parse_identifier, |ident| *ident.0 == specific)(i)
+}
+
+pub fn parse_binary_op(i: TokenSpan) -> ParResult<BinaryOp> {
+    let (i, tk) = alt((
+        Weak(Kind::Add),
+        Weak(Kind::Sub),
+        Weak(Kind::Mul),
+        Weak(Kind::Div),
+        Weak(Kind::Mod),
+
+        Weak(Kind::And),
+        Weak(Kind::Or),
+        Weak(Kind::Xor),
+        Weak(Kind::Shl),
+        Weak(Kind::Shr),
+
+        Weak(Kind::Eq),
+        Weak(Kind::Neq),
+        Weak(Kind::Lt),
+        Weak(Kind::Gt),
+        Weak(Kind::Le),
+        Weak(Kind::Ge),
+    ))(i)?;
+
+    Ok((i, BinaryOp {
+        span: tk.span,
+        kind: tk.kind.try_into().unwrap(),
+    }))
+}
+
+impl<'a> TryFrom<Kind<'a>> for MathOpKind {
+    type Error = ();
+
+    fn try_from(value: Kind<'a>) -> Result<Self, Self::Error> {
+        Ok(match value {
+            Kind::Add | Kind::AddAssign => MathOpKind::Add,
+            Kind::Sub | Kind::SubAssign => MathOpKind::Sub,
+            Kind::Mul | Kind::MulAssign => MathOpKind::Mul,
+            Kind::Div | Kind::DivAssign => MathOpKind::Div,
+            Kind::Mod | Kind::ModAssign => MathOpKind::Mod,
+
+            Kind::And | Kind::AndAssign => MathOpKind::And,
+            Kind::Or | Kind::OrAssign => MathOpKind::Or,
+            Kind::Xor | Kind::XorAssign => MathOpKind::Xor,
+            Kind::Shl | Kind::ShlAssign => MathOpKind::Shl,
+            Kind::Shr | Kind::ShrAssign => MathOpKind::Shr,
+
+            _ => return Err(()),
+        })
+    }
+}
+
+impl<'a> TryFrom<Kind<'a>> for BinaryOpKind {
+    type Error = ();
+
+    fn try_from(value: Kind<'a>) -> Result<Self, Self::Error> {
+        if let Ok(op) = MathOpKind::try_from(value.clone()) {
+            return Ok(BinaryOpKind::Math(op));
+        }
+        Ok(match value {
+            Kind::Eq => BinaryOpKind::Comparison(ComparisonOpKind::Eq),
+            Kind::Neq => BinaryOpKind::Comparison(ComparisonOpKind::Neq),
+            Kind::Lt => BinaryOpKind::Comparison(ComparisonOpKind::Lt),
+            Kind::Le => BinaryOpKind::Comparison(ComparisonOpKind::Le),
+            Kind::Gt => BinaryOpKind::Comparison(ComparisonOpKind::Gt),
+            Kind::Ge => BinaryOpKind::Comparison(ComparisonOpKind::Ge),
+            Kind::AndL => BinaryOpKind::Logic(LogicOpKind::And),
+            Kind::OrL => BinaryOpKind::Logic(LogicOpKind::Or),
+            _ => return Err(()),
+        })
+    }
+}
+
+impl BinaryOpKind {
+    pub fn priority(&self) -> u32 {
+        match self {
+            BinaryOpKind::Math(op) => match op {
+                MathOpKind::Add => 1,
+                MathOpKind::Sub => 1,
+                MathOpKind::Mul => 0,
+                MathOpKind::Div => 0,
+                MathOpKind::Mod => 0,
+
+                MathOpKind::And => 2,
+                MathOpKind::Or => 2,
+                MathOpKind::Xor => 2,
+                MathOpKind::Shl => 3,
+                MathOpKind::Shr => 3,
+            }
+            BinaryOpKind::Comparison(cmp) => match cmp {
+                ComparisonOpKind::Eq => 4,
+                ComparisonOpKind::Neq => 4,
+                ComparisonOpKind::Lt => 4,
+                ComparisonOpKind::Gt => 4,
+                ComparisonOpKind::Le => 4,
+                ComparisonOpKind::Ge => 4,
+            }
+            BinaryOpKind::Logic(logic) => match logic {
+                LogicOpKind::And => 6,
+                LogicOpKind::Or => 5,
+            },
+        }
+    }
 }
