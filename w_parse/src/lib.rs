@@ -54,6 +54,6 @@ fn parse_name(i: TokenSpan) -> ParResult<Identifier> {
 fn keyword_check(ident: &Identifier) -> bool {
     !matches!(
         *ident.0,
-        "struct" | "enum" | "func" | "for" | "loop" | "if" | "mut"
+        "struct" | "enum" | "func" | "for" | "loop" | "if" | "mut" | "defer"
     )
 }

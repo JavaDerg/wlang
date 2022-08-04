@@ -1,10 +1,11 @@
+use std::mem::swap;
 use crate::types::parse_function_type;
 use crate::{parse_identifier, parse_name, ErrorChain, Identifier, ParResult, TokenSpan, Weak, Error};
 use assert_matches::assert_matches;
 use nom::branch::alt;
 use nom::combinator::{all_consuming, cond, map, map_opt, opt, verify};
 use nom::multi::{many0, separated_list0, separated_list1};
-use nom::sequence::{pair, terminated};
+use nom::sequence::{pair, preceded, terminated};
 use nom::{Err, Parser};
 use std::rc::Rc;
 use w_tokenize::{Kind, Span};
@@ -40,10 +41,22 @@ pub enum Expression<'a> {
         rhs: Box<Expression<'a>>,
     },
     Tuple(Vec<Expression<'a>>),
-    Accessor(Vec<Identifier<'a>>),
-    Call {
+    Array(Vec<Expression<'a>>),
+    Accessor {
         accessor: Vec<Identifier<'a>>,
+        preceding: Option<Box<Expression<'a>>>
+    },
+    Call {
+        target: Box<Expression<'a>>,
         args: Vec<Expression<'a>>,
+    },
+    Index {
+        target: Box<Expression<'a>>,
+        args: Vec<Expression<'a>>,
+    },
+    Deref {
+        span: Span<'a>,
+        target: Box<Expression<'a>>,
     }
 }
 
@@ -100,25 +113,78 @@ pub fn parse_expression(i: TokenSpan) -> ParResult<Expression> {
 }
 
 fn parse_expression_inner(binaries: bool) -> impl FnMut(TokenSpan) -> ParResult<Expression> {
-    move |i| alt((
-        map(parse_code_block, Expression::Scoped),
-        parse_assignment,
-        parse_reassignment,
-        parse_op_reassign,
-        map(parse_call, |(accessor, args)| Expression::Call {
-            accessor,
-            args,
-        }),
-        map(parse_accessor, Expression::Accessor),
-        map(parse_tuple(parse_expression), Expression::Tuple),
-        map_opt(cond(binaries, parse_binaries), |x| x)
-        // TODO,
-    ))(i)
+    move |i| {
+        let (i, derefs) = many0(map(Weak(Kind::Mul), |tk| tk.span))(i)?;
+        let (i, expr) = alt((
+            map(parse_code_block, Expression::Scoped),
+            parse_assignment,
+            parse_reassignment,
+            parse_op_reassign,
+            map(parse_accessor, |idents| Expression::Accessor {
+                accessor: idents,
+                preceding: None
+            }),
+            map(parse_tuple(parse_expression), Expression::Tuple),
+            map(parse_array(parse_expression), Expression::Tuple),
+            map_opt(cond(binaries, parse_binaries), |x| x)
+            // TODO,
+        ))(i)?;
 
+        let (i, mut expr) = parse_trailing(i, expr)?;
+
+        let access = expr.left_most();
+        // Tuple has no particular meaning here, we just use it as it only requires a single vec
+        // and empty vecs should not allocate any ram
+        let mut tmp = Expression::Tuple(Vec::new());
+        swap(access, &mut tmp);
+
+        for deref in derefs {
+            tmp = Expression::Deref {
+                span: deref,
+                target: Box::new(tmp),
+            };
+        }
+
+        swap(access, &mut tmp);
+        let _ = tmp;
+
+        Ok((i, expr))
+    }
 }
 
-pub fn parse_unaries(i: TokenSpan) -> ParResult<Expression> {
-    todo!("this is absolutely fucked")
+pub fn parse_trailing<'a>(i: TokenSpan<'a>, mut expr: Expression<'a>) -> ParResult<'a, Expression<'a>> {
+    let (i, tail) = opt(alt((
+        map(parse_tuple(parse_expression), Expression::Tuple),
+        map(parse_array(parse_expression), Expression::Array),
+        map(preceded(Weak(Kind::Dot), parse_accessor), |accessor| Expression::Accessor {
+            accessor,
+            preceding: None,
+        }),
+    )))(i)?;
+
+    if tail.is_none() {
+        return Ok((i, expr));
+    }
+
+    let access = expr.right_most();
+    // Tuple has no particular meaning here, we just use it as it only requires a single vec
+    // and empty vecs should not allocate any ram
+    let mut tmp = Expression::Tuple(Vec::new());
+    swap(access, &mut tmp);
+
+    match tail.unwrap() {
+        Expression::Tuple(args) =>
+            tmp = Expression::Call { target: Box::new(tmp), args },
+        Expression::Array(args) =>
+            tmp = Expression::Index { target: Box::new(tmp), args },
+        Expression::Accessor { accessor, .. } =>
+            tmp = Expression::Accessor { accessor, preceding: Some(Box::new(tmp)) },
+        _ => unreachable!(),
+    }
+    swap(access, &mut tmp);
+
+    // there can be multiple trailing expressions, we just need to keep track of the last one
+    parse_trailing(i, expr)
 }
 
 pub fn parse_binaries(i: TokenSpan) -> ParResult<Expression> {
@@ -245,11 +311,29 @@ pub fn parse_op_reassign(i: TokenSpan) -> ParResult<Expression> {
 }
 
 pub fn parse_tuple<'a, F, O: 'a>(parser: F) -> impl FnMut(TokenSpan<'a>) -> ParResult<Vec<O>>
+    where
+        F: Parser<TokenSpan<'a>, O, ErrorChain<'a>> + Clone,
+{
+    move |i| {
+        let (i, block) = Weak(Kind::Tuple(Rc::from([]))).parse(i)?;
+        let block_tokens = assert_matches!(block.kind, Kind::Tuple(tk) => tk);
+
+        let block_span = TokenSpan::new(i.file, block_tokens);
+
+        all_consuming(terminated(
+            separated_list0(Weak(Kind::Comma), parser.clone()),
+            opt(Weak(Kind::Comma)),
+        ))(block_span)
+            .map(|(_, o)| (i, o))
+    }
+}
+
+pub fn parse_array<'a, F, O: 'a>(parser: F) -> impl FnMut(TokenSpan<'a>) -> ParResult<Vec<O>>
 where
     F: Parser<TokenSpan<'a>, O, ErrorChain<'a>> + Clone,
 {
     move |i| {
-        let (i, block) = Weak(Kind::Tuple(Rc::from([]))).parse(i)?;
+        let (i, block) = Weak(Kind::Array(Rc::from([]))).parse(i)?;
         let block_tokens = assert_matches!(block.kind, Kind::Tuple(tk) => tk);
 
         let block_span = TokenSpan::new(i.file, block_tokens);
@@ -264,12 +348,6 @@ where
 
 pub fn parse_accessor(i: TokenSpan) -> ParResult<Vec<Identifier>> {
     separated_list1(Weak(Kind::Dot), parse_name)(i)
-}
-
-pub fn parse_call(i: TokenSpan) -> ParResult<(Vec<Identifier>, Vec<Expression>)> {
-    let (i, accessor) = parse_accessor(i)?;
-    let (i, args) = parse_tuple(parse_expression)(i)?;
-    Ok((i, (accessor, args)))
 }
 
 pub fn parse_specific(
@@ -377,6 +455,25 @@ impl BinaryOpKind {
                 LogicOpKind::And => 6,
                 LogicOpKind::Or => 5,
             },
+        }
+    }
+}
+
+impl<'a> Expression<'a> {
+    pub fn left_most(&mut self) -> &mut Self {
+        match self {
+            Expression::BinaryOp { lhs, .. } => lhs.left_most(),
+            _ => self,
+        }
+    }
+
+    pub fn right_most(&mut self) -> &mut Self {
+        match self {
+            Expression::BinaryOp { rhs, .. } => rhs.right_most(),
+            Expression::Assignment { value, .. } => value.right_most(),
+            Expression::Reassignment { value, .. } => value.right_most(),
+            Expression::OpReassignment { value, .. } => value.right_most(),
+            _ => self,
         }
     }
 }
