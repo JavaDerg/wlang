@@ -57,7 +57,11 @@ pub enum Expression<'a> {
     Deref {
         span: Span<'a>,
         target: Box<Expression<'a>>,
-    }
+    },
+    Terminated {
+        span: Span<'a>,
+        value: Box<Expression<'a>>,
+    },
 }
 
 pub struct CodeBlock<'a>(Vec<Expression<'a>>);
@@ -147,6 +151,14 @@ fn parse_expression_inner(binaries: bool) -> impl FnMut(TokenSpan) -> ParResult<
 
         swap(access, &mut tmp);
         let _ = tmp;
+
+        let (i, terminated) = opt(Weak(Kind::Semicolon))(i)?;
+        if let Some(terminated) = terminated {
+            expr = Expression::Terminated {
+                span: terminated.span,
+                value: Box::new(expr),
+            };
+        }
 
         Ok((i, expr))
     }
