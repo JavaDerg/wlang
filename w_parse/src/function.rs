@@ -3,7 +3,7 @@ use crate::types::parse_function_type;
 use crate::{parse_identifier, parse_name, ErrorChain, Identifier, ParResult, TokenSpan, Weak, Error};
 use assert_matches::assert_matches;
 use nom::branch::alt;
-use nom::combinator::{all_consuming, cond, map, map_opt, opt, verify};
+use nom::combinator::{all_consuming, cond, map, map_opt, opt, recognize, verify};
 use nom::multi::{many0, separated_list0, separated_list1};
 use nom::sequence::{pair, preceded, terminated};
 use nom::{Err, Parser};
@@ -62,6 +62,24 @@ pub enum Expression<'a> {
         span: Span<'a>,
         value: Box<Expression<'a>>,
     },
+    Deferred {
+        defer: Identifier<'a>,
+        value: Box<Expression<'a>>,
+    },
+    Branch {
+        conditions: Vec<(TokenSpan<'a>, Expression<'a>, Expression<'a>)>,
+        else_: Option<(Identifier<'a>, Box<Expression<'a>>)>
+    },
+    Loop {
+        kind: LoopKind<'a>,
+        body: Box<Expression<'a>>,
+    }
+}
+
+pub enum LoopKind<'a> {
+    Infinite,
+    Conditional(Box<Expression<'a>>),
+    // TODO: other for variants
 }
 
 pub struct CodeBlock<'a>(Vec<Expression<'a>>);
@@ -121,6 +139,8 @@ fn parse_expression_inner(binaries: bool) -> impl FnMut(TokenSpan) -> ParResult<
         let (i, derefs) = many0(map(Weak(Kind::Mul), |tk| tk.span))(i)?;
         let (i, expr) = alt((
             map(parse_code_block, Expression::Scoped),
+            parse_defer,
+            parse_branching,
             parse_assignment,
             parse_reassignment,
             parse_op_reassign,
@@ -162,6 +182,49 @@ fn parse_expression_inner(binaries: bool) -> impl FnMut(TokenSpan) -> ParResult<
 
         Ok((i, expr))
     }
+}
+
+pub fn parse_branching(mut i: TokenSpan) -> ParResult<Expression> {
+    let mut acc = vec![];
+
+    for f in (0usize..).map(|x| x == 0) {
+        if !f {
+            let (_, eid) = opt(pair(parse_specific("else"), parse_specific("if")))(i.clone())?;
+            if eid.is_none() {
+                break;
+            }
+        }
+        let (ni, span) = if f {
+            recognize(parse_specific("if"))(i)?
+        } else {
+            recognize(pair(parse_specific("else"), parse_specific("if")))(i)?
+        };
+        let (ni, cond) = parse_expression(ni)?;
+        let (ni, val) = parse_expression(ni)?;
+
+        acc.push((span, cond, val));
+
+        i = ni;
+    }
+    let (mut i, else_) = opt(parse_specific("else"))(i)?;
+    let else_ = if let Some(span) = else_ {
+        let (ni, val) = parse_expression(i)?;
+
+        i = ni;
+
+        Some((span, Box::new(val)))
+    } else {
+        None
+    };
+
+    Ok((i, Expression::Branch { conditions: acc, else_ }))
+}
+
+pub fn parse_defer(i: TokenSpan) -> ParResult<Expression> {
+    let (i, defer) = parse_specific("deref")(i)?;
+    let (i, expr) = parse_expression(i)?;
+
+    Ok((i, Expression::Deferred { defer, value: Box::new(expr) }))
 }
 
 pub fn parse_trailing<'a>(i: TokenSpan<'a>, mut expr: Expression<'a>) -> ParResult<'a, Expression<'a>> {
