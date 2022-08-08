@@ -1,13 +1,15 @@
-print_num :: extern "custom_test" func(i32);
-
-main :: func(n u32) u32 {
-    f := fib(42);
-    print_num(f)
+option(T) :: enum {
+    some(t),
+    none,
 }
 
-fib :: func(n u32) u32 {
-    if n <= 2
-        n.min(1)
-    else
-        fib(n - 1) + fib(n - 2)
+some_test :: option(str) := test("test");
+
+// const?
+test :: func(s str) option(str) {
+    option::some(s)
+}
+
+main :: func() {
+    t := some_test;
 }

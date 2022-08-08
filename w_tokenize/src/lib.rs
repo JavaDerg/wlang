@@ -41,6 +41,8 @@ pub enum Kind<'a> {
     /// Regular identifier
     Ident,
 
+    /// `:`
+    Col,
     /// `::`
     DoubleCol,
 
@@ -227,6 +229,7 @@ fn token(i: Span) -> TokResult<Option<Token>> {
         alt((
             op("::", ":=", || Kind::DoubleCol),
             op(":=", ":=", || Kind::Define),
+            op(":", "=", || Kind::DoubleCol),
             op(",", "", || Kind::Comma),
             op(".", "", || Kind::Dot),
             op(";", "", || Kind::Semicolon),
@@ -457,6 +460,7 @@ impl<'a> Kind<'a> {
             Kind::Array(_) => 38,
             Kind::String(_) => 39,
             Kind::Number(_) => 40,
+            Kind::Col => 41,
         }
     }
 }
