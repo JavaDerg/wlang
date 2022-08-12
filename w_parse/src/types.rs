@@ -1,4 +1,4 @@
-use crate::{parse_identifier, parse_name, Identifier, ParResult, TokenSpan, Weak};
+use crate::{parse_identifier, parse_name, Ident, ParResult, TokenSpan, Weak};
 use assert_matches::assert_matches;
 use nom::branch::alt;
 use nom::combinator::{all_consuming, consumed, map, opt, verify};
@@ -22,18 +22,15 @@ pub enum Type<'a> {
 
 pub struct RegularType<'a> {
     pub span: TokenSpan<'a>,
-    pub ty_name: Identifier<'a>,
+    pub ty_name: Ident<'a>,
     pub generics: Vec<Type<'a>>,
 }
-pub struct StructType<'a>(pub TokenSpan<'a>, pub Vec<(Identifier<'a>, Type<'a>)>);
-pub struct EnumType<'a>(
-    pub TokenSpan<'a>,
-    pub Vec<(Identifier<'a>, Option<Type<'a>>)>,
-);
+pub struct StructType<'a>(pub TokenSpan<'a>, pub Vec<(Ident<'a>, Type<'a>)>);
+pub struct EnumType<'a>(pub TokenSpan<'a>, pub Vec<(Ident<'a>, Option<Type<'a>>)>);
 pub struct TupleType<'a>(pub TokenSpan<'a>, pub Vec<Type<'a>>);
 pub struct FunctionType<'a> {
     pub span: TokenSpan<'a>,
-    pub args: Vec<((Identifier<'a>, bool), Type<'a>)>,
+    pub args: Vec<((Ident<'a>, bool), Type<'a>)>,
     pub result: Option<Box<Type<'a>>>,
 }
 pub struct ArrayType<'a> {
@@ -44,7 +41,7 @@ pub struct ArrayType<'a> {
 pub struct PointerType<'a> {
     pub span: TokenSpan<'a>,
     pub to: Box<Type<'a>>,
-    pub mutable: Option<Identifier<'a>>,
+    pub mutable: Option<Ident<'a>>,
 }
 pub struct NeverType<'a>(pub TokenSpan<'a>);
 
@@ -135,7 +132,7 @@ fn parse_struct_type(oi: TokenSpan) -> ParResult<StructType> {
     Ok((i, StructType(span, fields)))
 }
 
-fn parse_named_type_list(i: TokenSpan) -> ParResult<Vec<(Identifier, Type)>> {
+fn parse_named_type_list(i: TokenSpan) -> ParResult<Vec<(Ident, Type)>> {
     all_consuming(terminated(
         separated_list0(Weak(Kind::Comma), pair(parse_name, parse_type)),
         opt(Weak(Kind::Comma)),
@@ -158,7 +155,7 @@ fn parse_enum_type(oi: TokenSpan) -> ParResult<EnumType> {
     Ok((i, EnumType(span, block)))
 }
 
-fn parse_named_opt_type_list(i: TokenSpan) -> ParResult<Vec<(Identifier, Option<Type>)>> {
+fn parse_named_opt_type_list(i: TokenSpan) -> ParResult<Vec<(Ident, Option<Type>)>> {
     all_consuming(terminated(
         separated_list0(Weak(Kind::Comma), pair(parse_name, opt(parse_type))),
         opt(Weak(Kind::Comma)),
@@ -185,7 +182,7 @@ fn parse_type_list(i: TokenSpan) -> ParResult<Vec<Type>> {
     ))(i)
 }
 
-pub(super) fn parse_function_type(oi: TokenSpan) -> ParResult<FunctionType> {
+fn parse_function_type(oi: TokenSpan) -> ParResult<FunctionType> {
     let (i, _) = verify(Weak(Kind::Ident), |t| *t.span == "func")(oi.clone())?;
     let (i, block) = Weak(Kind::Tuple(Rc::from([]))).parse(i)?;
     let tuple_tokens = assert_matches!(block.kind, Kind::Block(tk) => tk);
@@ -201,7 +198,7 @@ pub(super) fn parse_function_type(oi: TokenSpan) -> ParResult<FunctionType> {
     Ok((i, FunctionType { span, args, result }))
 }
 
-fn parse_function_args(i: TokenSpan) -> ParResult<Vec<((Identifier, bool), Type)>> {
+fn parse_function_args(i: TokenSpan) -> ParResult<Vec<((Ident, bool), Type)>> {
     all_consuming(terminated(
         separated_list0(
             Weak(Kind::Comma),

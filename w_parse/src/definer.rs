@@ -1,14 +1,12 @@
-use crate::{
-    parse_identifier, parse_name, parse_type, Identifier, ParResult, TokenSpan, Type, Weak,
-};
+use crate::{parse_identifier, parse_name, parse_type, Ident, ParResult, TokenSpan, Type, Weak};
 use nom::combinator::cond;
 use nom::multi::many0;
 use nom::Parser;
 use w_tokenize::{Kind, Token};
 
 pub struct TypeDefiner<'a> {
-    pub name: Identifier<'a>,
-    pub generics: Vec<Identifier<'a>>,
+    pub name: Ident<'a>,
+    pub generics: Vec<Ident<'a>>,
     pub ty: Type<'a>,
     pub terminated: Option<Token<'a>>,
 }

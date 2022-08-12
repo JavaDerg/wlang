@@ -4,6 +4,7 @@ extern crate core;
 
 mod definer;
 mod error;
+mod expr;
 mod function;
 mod parser;
 mod types;
@@ -23,11 +24,11 @@ use w_tokenize::{Kind, Span};
 
 pub type SVec<T> = Rc<[T]>;
 
-pub struct Identifier<'a>(pub Span<'a>);
+pub struct Ident<'a>(pub Span<'a>);
 
 pub struct Name<'a> {
-    pub main: Identifier<'a>,
-    pub generic_params: SVec<Identifier<'a>>,
+    pub main: Ident<'a>,
+    pub generic_params: SVec<Ident<'a>>,
 }
 
 fn svconv<T>(v: Vec<T>) -> Rc<[T]> {
@@ -38,20 +39,24 @@ pub fn parse(i: TokenSpan) -> ParResult<()> {
     Ok((i, ()))
 }
 
-fn parse_identifier(i: TokenSpan) -> ParResult<Identifier> {
+fn parse_keyword(specific: &str) -> impl FnMut(TokenSpan) -> ParResult<Ident> + '_ {
+    move |i| verify(parse_identifier, |ident| *ident.0 == specific)(i)
+}
+
+fn parse_identifier(i: TokenSpan) -> ParResult<Ident> {
     let (i, tok) = Weak(Kind::Ident).parse(i)?;
-    Ok((i, Identifier(tok.span)))
+    Ok((i, Ident(tok.span)))
 }
 
 fn quick_err<T>(span: TokenSpan, reason: impl Into<Cow<'static, str>>) -> ParResult<T> {
     Err(Err::Error(ErrorChain::from(Error::new(span, reason))))
 }
 
-fn parse_name(i: TokenSpan) -> ParResult<Identifier> {
+fn parse_name(i: TokenSpan) -> ParResult<Ident> {
     verify(parse_identifier, keyword_check)(i)
 }
 
-fn keyword_check(ident: &Identifier) -> bool {
+fn keyword_check(ident: &Ident) -> bool {
     !matches!(
         *ident.0,
         "struct" | "enum" | "func" | "for" | "loop" | "if" | "else" | "mut" | "defer"
