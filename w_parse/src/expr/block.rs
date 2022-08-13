@@ -26,7 +26,7 @@ pub fn parse_block(i: TokenSpan) -> ParResult<ExprBlock> {
     let mut i = assert_matches!(block.kind, Kind::Block(vals) => TokenSpan::new(oi.file, vals));
 
     let mut acc = vec![];
-    let mut last = None;
+    let last;
     
     loop {
         let (ni, expr) = parse_expression(i)?;
