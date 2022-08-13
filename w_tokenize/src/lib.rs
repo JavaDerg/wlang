@@ -42,7 +42,7 @@ pub enum Kind<'a> {
     Ident,
 
     /// `:`
-    Col,
+    Colon,
     /// `::`
     DoubleCol,
 
@@ -460,7 +460,7 @@ impl<'a> Kind<'a> {
             Kind::Array(_) => 38,
             Kind::String(_) => 39,
             Kind::Number(_) => 40,
-            Kind::Col => 41,
+            Kind::Colon => 41,
         }
     }
 }

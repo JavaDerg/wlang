@@ -10,7 +10,7 @@ pub struct Path<'a> {
 
 pub fn parse_path(i: TokenSpan) -> ParResult<Path> {
     map(
-        consumed(separated_list1(Weak(Kind::Col), parse_name)),
+        consumed(separated_list1(Weak(Kind::Colon), parse_name)),
         |(span, path)| Path { span, path },
     )(i)
 }

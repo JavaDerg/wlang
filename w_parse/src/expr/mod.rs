@@ -1,10 +1,10 @@
 use crate::expr::call::{parse_call_wrapper, ExprCall};
 use crate::expr::field::{parse_field_wrapper, ExprField};
 use crate::expr::index::{parse_index_wrapper, ExprIndex};
-use crate::expr::many::{ExprArray, ExprTuple};
+use crate::expr::many::{ExprArray, ExprTuple, parse_array, parse_tuple};
 use crate::expr::path::{parse_path, Path};
 use crate::expr::unary::{parse_unary, ExprUnary, UnOp};
-use crate::{parse_name, ErrorChain, Ident, ParResult, TokenSpan, Weak};
+use crate::{parse_name, ErrorChain, Ident, ParResult, TokenSpan, Weak, parse_type};
 use assert_matches::assert_matches;
 use nom::branch::alt;
 use nom::bytes::complete::take;
@@ -13,6 +13,8 @@ use nom::error::{ErrorKind, ParseError};
 use nom::multi::many0;
 use nom::{Err, InputTake};
 use w_tokenize::{Kind, Number, Span, Token};
+use crate::expr::block::ExprBlock;
+use crate::expr::ctor::{ExprCtor, parse_ctor};
 
 mod call;
 mod field;
@@ -20,15 +22,18 @@ mod index;
 mod many;
 mod path;
 mod unary;
+mod ctor;
+mod block;
 
+#[macro_export]
 macro_rules! tag {
     ($pt:pat, $spt:pat => $res:expr) => {
         crate::expr::tag(
-            |tk: &Token<'_>| match &tk.kind {
+            |tk| match &tk.kind {
                 $pt => true,
                 _ => false,
             },
-            |tk: Token<'_>| match tk {
+            |tk| match tk {
                 $spt => $res,
                 _ => unreachable!(),
             },
@@ -41,6 +46,9 @@ pub enum Expr<'a> {
     Array(ExprArray<'a>),
 
     Path(Path<'a>),
+    Ctor(ExprCtor<'a>),
+
+    Block(ExprBlock<'a>),
 
     Number(Number<'a>),
     String(Span<'a>, String),
@@ -51,6 +59,7 @@ pub enum Expr<'a> {
     Call(ExprCall<'a>),
     Index(ExprIndex<'a>),
 }
+
 
 pub fn parse_expression(i: TokenSpan) -> ParResult<Expr> {
     parse_expr_pre_pass(i)
@@ -104,21 +113,25 @@ fn parse_succeeding<'a>(i: TokenSpan<'a>, expr: Expr<'a>) -> ParResult<'a, (Expr
 
 fn parse_expr_post_pass(i: TokenSpan) -> ParResult<Expr> {
     alt((
+        map(parse_ctor, Expr::Ctor),
         map(verify(parse_path, |pt| pt.path.len() >= 2), Expr::Path),
         map(parse_name, Expr::Ident),
-        // tag(|tk| matches!(&tk.kind, &Kind::String(_)), |tk| assert_matches!(tk, Token { kind: Kind::String(str), span } => Expr::String(span, str))),
+        map(parse_tuple, Expr::Tuple),
+        map(parse_array, Expr::Array),
+        tag!(Kind::String(_), Token { kind: Kind::String(num), span } => Expr::String(span, num)),
         tag!(Kind::Number(_), Token { kind: Kind::Number(num), .. } => Expr::Number(num)),
     ))(i)
 }
 
-fn tag<O>(
-    parser: fn(&Token) -> bool,
-    map: fn(Token) -> O,
-) -> impl FnMut(TokenSpan) -> ParResult<O> {
+fn tag<'a, O: 'a>(
+    parser: fn(&Token<'a>) -> bool,
+    map: fn(Token<'a>) -> O,
+) -> impl FnMut(TokenSpan<'a>) -> ParResult<'a, O> {
     move |i| {
         if i.is_empty() {
             return Err(Err::Error(ErrorChain::from_error_kind(i, ErrorKind::Eof)));
         }
+
         let (i, took) = TokenSpan::take_split(&i, 1);
         if !parser(&took[0]) {
             return Err(Err::Error(ErrorChain::from_error_kind(
@@ -126,6 +139,26 @@ fn tag<O>(
                 ErrorKind::Tag,
             )));
         }
+
         Ok((i, map(took[0].clone())))
+    }
+}
+
+impl<'a> Expr<'a> {
+    pub fn needs_termination(&self) -> bool {
+        match self {
+            Expr::Tuple(_)
+            | Expr::Array(_)
+            | Expr::Path(_)
+            | Expr::Ctor(_)
+            | Expr::Number(_)
+            | Expr::String(_, _)
+            | Expr::Ident(_)
+            | Expr::Unary(_)
+            | Expr::Field(_)
+            | Expr::Call(_)
+            | Expr::Index(_) => true,
+            Expr::Block(_) => false,
+        }
     }
 }
