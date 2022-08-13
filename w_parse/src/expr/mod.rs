@@ -1,29 +1,31 @@
 use crate::expr::call::{parse_call_wrapper, ExprCall};
 use crate::expr::field::{parse_field_wrapper, ExprField};
 use crate::expr::index::{parse_index_wrapper, ExprIndex};
-use crate::expr::many::{ExprArray, ExprTuple, parse_array, parse_tuple};
+use crate::expr::many::{parse_array, parse_tuple, ExprArray, ExprTuple};
 use crate::expr::path::{parse_path, Path};
 use crate::expr::unary::{parse_unary, ExprUnary};
 use crate::{parse_name, ErrorChain, Ident, ParResult, TokenSpan};
 
 use nom::branch::alt;
 
+use crate::expr::block::ExprBlock;
+use crate::expr::ctor::{parse_ctor, ExprCtor};
+use crate::expr::ops::ExprBinary;
 use nom::combinator::{map, opt, verify};
 use nom::error::{ErrorKind, ParseError};
 use nom::multi::many0;
 use nom::{Err, InputTake};
 use w_tokenize::{Kind, Number, Span, Token};
-use crate::expr::block::ExprBlock;
-use crate::expr::ctor::{ExprCtor, parse_ctor};
 
+mod block;
 mod call;
+mod ctor;
 mod field;
 mod index;
 mod many;
+mod ops;
 mod path;
 mod unary;
-mod ctor;
-mod block;
 
 #[macro_export]
 macro_rules! tag {
@@ -41,6 +43,7 @@ macro_rules! tag {
     };
 }
 
+#[derive(Debug, Clone)]
 pub enum Expr<'a> {
     Tuple(ExprTuple<'a>),
     Array(ExprArray<'a>),
@@ -49,6 +52,7 @@ pub enum Expr<'a> {
     Ctor(ExprCtor<'a>),
 
     Block(ExprBlock<'a>),
+    Binary(ExprBinary<'a>),
 
     Number(Number<'a>),
     String(Span<'a>, String),
@@ -59,7 +63,6 @@ pub enum Expr<'a> {
     Call(ExprCall<'a>),
     Index(ExprIndex<'a>),
 }
-
 
 pub fn parse_expression(i: TokenSpan) -> ParResult<Expr> {
     parse_expr_pre_pass(i)
@@ -157,7 +160,8 @@ impl<'a> Expr<'a> {
             | Expr::Unary(_)
             | Expr::Field(_)
             | Expr::Call(_)
-            | Expr::Index(_) => true,
+            | Expr::Index(_)
+            | Expr::Binary(_) => true,
             Expr::Block(_) => false,
         }
     }

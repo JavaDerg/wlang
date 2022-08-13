@@ -2,7 +2,7 @@ use crate::expr::many::{parse_array, ExprArray};
 use crate::expr::Expr;
 use crate::{ParResult, TokenSpan};
 
-
+#[derive(Debug, Clone)]
 pub struct ExprIndex<'a> {
     pub base: Box<Expr<'a>>,
     pub args: ExprArray<'a>,

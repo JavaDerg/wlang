@@ -24,8 +24,10 @@ use w_tokenize::{Kind, Span};
 
 pub type SVec<T> = Rc<[T]>;
 
+#[derive(Debug, Clone)]
 pub struct Ident<'a>(pub Span<'a>);
 
+#[derive(Debug, Clone)]
 pub struct Name<'a> {
     pub main: Ident<'a>,
     pub generic_params: SVec<Ident<'a>>,

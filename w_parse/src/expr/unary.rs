@@ -4,11 +4,13 @@ use nom::branch::alt;
 use nom::combinator::map;
 use w_tokenize::{Kind, Span};
 
+#[derive(Debug, Clone)]
 pub struct ExprUnary<'a> {
     pub op: UnOp<'a>,
     pub expr: Box<Expr<'a>>,
 }
 
+#[derive(Debug, Clone)]
 pub enum UnOp<'a> {
     Ref(Span<'a>),
     Deref(Span<'a>),

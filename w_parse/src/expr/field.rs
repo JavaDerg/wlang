@@ -1,10 +1,10 @@
-use crate::expr::{Expr};
+use crate::expr::Expr;
 use crate::{parse_name, Ident, ParResult, TokenSpan, Weak};
-
 
 use nom::sequence::pair;
 use w_tokenize::{Kind, Span};
 
+#[derive(Debug, Clone)]
 pub struct ExprField<'a> {
     pub base: Box<Expr<'a>>,
     pub dot: Span<'a>,

@@ -1,8 +1,9 @@
 use crate::{parse_name, Ident, ParResult, TokenSpan, Weak};
 use nom::combinator::{consumed, map};
-use nom::multi::{separated_list1};
-use w_tokenize::{Kind};
+use nom::multi::separated_list1;
+use w_tokenize::Kind;
 
+#[derive(Debug, Clone)]
 pub struct Path<'a> {
     pub span: TokenSpan<'a>,
     pub path: Vec<Ident<'a>>,

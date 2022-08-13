@@ -10,16 +10,19 @@ use w_tokenize::{Kind, Span};
 
 pub struct Many<T>(Vec<T>);
 
+#[derive(Debug, Clone)]
 pub struct ExprTuple<'a> {
     pub span: Span<'a>,
     pub values: Vec<Expr<'a>>,
 }
 
+#[derive(Debug, Clone)]
 pub struct ExprArray<'a> {
     pub span: Span<'a>,
     pub values: Vec<Expr<'a>>,
 }
 
+#[derive(Debug, Clone)]
 pub struct ExprObject<'a> {
     pub span: Span<'a>,
     pub values: Vec<(Ident<'a>, Expr<'a>)>,

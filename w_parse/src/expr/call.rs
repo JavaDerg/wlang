@@ -2,7 +2,7 @@ use crate::expr::many::{parse_tuple, ExprTuple};
 use crate::expr::Expr;
 use crate::{ParResult, TokenSpan};
 
-
+#[derive(Debug, Clone)]
 pub struct ExprCall<'a> {
     pub base: Box<Expr<'a>>,
     pub args: ExprTuple<'a>,
