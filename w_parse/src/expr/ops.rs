@@ -1,4 +1,4 @@
-use crate::expr::{parse_expression, Expr};
+use crate::expr::{parse_expr_pre_pass, Expr};
 use crate::{ErrorChain, ParResult, TokenSpan};
 use assert_matches::assert_matches;
 use nom::combinator::opt;
@@ -50,7 +50,7 @@ pub fn parse_binary_ops(mut i: TokenSpan) -> ParResult<ExprBinary> {
     let mut ops = vec![];
 
     loop {
-        let (ni, expr) = parse_expression(i)?;
+        let (ni, expr) = parse_expr_pre_pass(i, true)?;
         let (ni, op) = opt(parse_bi_op)(ni)?;
         i = ni;
 

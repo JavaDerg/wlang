@@ -10,8 +10,8 @@ use nom::branch::alt;
 
 use crate::expr::block::ExprBlock;
 use crate::expr::ctor::{parse_ctor, ExprCtor};
-use crate::expr::ops::ExprBinary;
-use nom::combinator::{map, opt, verify};
+use crate::expr::ops::{ExprBinary, parse_binary_ops};
+use nom::combinator::{cond, map, map_opt, opt, verify};
 use nom::error::{ErrorKind, ParseError};
 use nom::multi::many0;
 use nom::{Err, InputTake};
@@ -65,13 +65,13 @@ pub enum Expr<'a> {
 }
 
 pub fn parse_expression(i: TokenSpan) -> ParResult<Expr> {
-    parse_expr_pre_pass(i)
+    parse_expr_pre_pass(i, false)
 }
 
-fn parse_expr_pre_pass(i: TokenSpan) -> ParResult<Expr> {
+pub fn parse_expr_pre_pass(i: TokenSpan, deep: bool) -> ParResult<Expr> {
     let (i, unaries) = many0(parse_unary)(i)?;
 
-    let (i, mut expr) = parse_expr_mid_pass(i)?;
+    let (i, mut expr) = parse_expr_mid_pass(i, deep)?;
 
     for op in unaries.into_iter().rev() {
         expr = Expr::Unary(ExprUnary {
@@ -82,8 +82,8 @@ fn parse_expr_pre_pass(i: TokenSpan) -> ParResult<Expr> {
     Ok((i, expr))
 }
 
-fn parse_expr_mid_pass(i: TokenSpan) -> ParResult<Expr> {
-    let (mut i, mut expr) = parse_expr_post_pass(i)?;
+fn parse_expr_mid_pass(i: TokenSpan, deep: bool) -> ParResult<Expr> {
+    let (mut i, mut expr) = parse_expr_post_pass(i, deep)?;
 
     loop {
         let (ni, (nexpr, cont)) = parse_succeeding(i, expr)?;
@@ -114,8 +114,9 @@ fn parse_succeeding<'a>(i: TokenSpan<'a>, expr: Expr<'a>) -> ParResult<'a, (Expr
     Ok((i, ret))
 }
 
-fn parse_expr_post_pass(i: TokenSpan) -> ParResult<Expr> {
+fn parse_expr_post_pass(i: TokenSpan, deep: bool) -> ParResult<Expr> {
     alt((
+        map_opt(cond(!deep, map(parse_binary_ops, Expr::Binary)), |x| x),
         map(parse_ctor, Expr::Ctor),
         map(verify(parse_path, |pt| pt.path.len() >= 2), Expr::Path),
         map(parse_name, Expr::Ident),
