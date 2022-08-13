@@ -1,7 +1,7 @@
-use crate::expr::many::{parse_array, parse_tuple, ExprArray, ExprTuple};
+use crate::expr::many::{parse_array, ExprArray};
 use crate::expr::Expr;
 use crate::{ParResult, TokenSpan};
-use nom::sequence::pair;
+
 
 pub struct ExprIndex<'a> {
     pub base: Box<Expr<'a>>,

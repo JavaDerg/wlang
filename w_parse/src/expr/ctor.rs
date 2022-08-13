@@ -1,5 +1,5 @@
 use crate::expr::many::{ExprObject, parse_object};
-use crate::{ParResult, parse_type, TokenSpan, Type};
+use crate::{ParResult, TokenSpan};
 use crate::expr::path::{parse_path, Path};
 
 pub struct ExprCtor<'a> {

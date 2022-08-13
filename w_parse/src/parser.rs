@@ -1,12 +1,12 @@
 use crate::error::{Error, ErrorChain};
 use nom::{
-    Compare, CompareResult, Err, IResult, InputIter, InputLength, InputTake, Needed, Offset,
+    Compare, CompareResult, Err, IResult, InputLength, InputTake, Offset,
     Parser, Slice,
 };
-use std::iter::Enumerate;
+
 use std::ops::{Deref, Range, RangeTo};
 use std::rc::Rc;
-use std::slice::Iter;
+
 
 use w_tokenize::{Kind, Span, Token};
 

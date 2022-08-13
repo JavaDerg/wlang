@@ -1,7 +1,7 @@
-use crate::expr::{parse_expression, Expr};
-use crate::{parse_identifier, parse_name, Ident, ParResult, TokenSpan, Weak};
-use either::Either;
-use nom::combinator::opt;
+use crate::expr::{Expr};
+use crate::{parse_name, Ident, ParResult, TokenSpan, Weak};
+
+
 use nom::sequence::pair;
 use w_tokenize::{Kind, Span};
 

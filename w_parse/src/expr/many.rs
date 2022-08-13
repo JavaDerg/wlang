@@ -6,7 +6,7 @@ use nom::multi::separated_list0;
 use nom::sequence::{terminated, tuple};
 use nom::Parser;
 use std::rc::Rc;
-use w_tokenize::{Kind, Span, Token};
+use w_tokenize::{Kind, Span};
 
 pub struct Many<T>(Vec<T>);
 

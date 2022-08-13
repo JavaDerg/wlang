@@ -3,11 +3,11 @@ use crate::expr::field::{parse_field_wrapper, ExprField};
 use crate::expr::index::{parse_index_wrapper, ExprIndex};
 use crate::expr::many::{ExprArray, ExprTuple, parse_array, parse_tuple};
 use crate::expr::path::{parse_path, Path};
-use crate::expr::unary::{parse_unary, ExprUnary, UnOp};
-use crate::{parse_name, ErrorChain, Ident, ParResult, TokenSpan, Weak, parse_type};
-use assert_matches::assert_matches;
+use crate::expr::unary::{parse_unary, ExprUnary};
+use crate::{parse_name, ErrorChain, Ident, ParResult, TokenSpan};
+
 use nom::branch::alt;
-use nom::bytes::complete::take;
+
 use nom::combinator::{map, opt, verify};
 use nom::error::{ErrorKind, ParseError};
 use nom::multi::many0;
@@ -102,7 +102,7 @@ fn parse_succeeding<'a>(i: TokenSpan<'a>, expr: Expr<'a>) -> ParResult<'a, (Expr
         parse_index_wrapper,
     )))(i)?;
 
-    let ret = if let Some(mut succ) = succ {
+    let ret = if let Some(succ) = succ {
         (succ(expr), true)
     } else {
         (expr, false)
