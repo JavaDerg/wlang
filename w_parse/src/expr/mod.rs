@@ -9,14 +9,15 @@ use crate::{parse_name, ErrorChain, Ident, ParResult, TokenSpan};
 use nom::branch::alt;
 
 use crate::expr::block::ExprBlock;
+use crate::expr::branch::{parse_branch, ExprBranch};
 use crate::expr::ctor::{parse_ctor, ExprCtor};
+use crate::expr::loops::{parse_while, ExprWhile};
 use crate::expr::ops::{parse_binary_ops, ExprBinary};
 use nom::combinator::{cond, map, map_opt, opt, verify};
 use nom::error::{ErrorKind, ParseError};
 use nom::multi::many0;
 use nom::{Err, InputTake};
 use w_tokenize::{Kind, Number, Span, Token};
-use crate::expr::branch::{ExprBranch, parse_branch};
 
 mod block;
 mod branch;
@@ -24,6 +25,7 @@ mod call;
 mod ctor;
 mod field;
 mod index;
+mod loops;
 mod many;
 mod ops;
 mod path;
@@ -57,6 +59,7 @@ pub enum Expr<'a> {
     Binary(ExprBinary<'a>),
 
     Branch(ExprBranch<'a>),
+    While(ExprWhile<'a>),
 
     Number(Number<'a>),
     String(Span<'a>, String),
@@ -127,6 +130,7 @@ fn parse_expr_post_pass(i: TokenSpan, deep: bool) -> ParResult<Expr> {
         map(parse_tuple, Expr::Tuple),
         map(parse_array, Expr::Array),
         map(parse_branch, Expr::Branch),
+        map(parse_while, Expr::While),
         tag!(Kind::String(_), Token { kind: Kind::String(num), span } => Expr::String(span, num)),
         tag!(Kind::Number(_), Token { kind: Kind::Number(num), .. } => Expr::Number(num)),
     ))(i)
@@ -168,8 +172,8 @@ impl<'a> Expr<'a> {
             | Expr::Call(_)
             | Expr::Index(_)
             | Expr::Binary(_) => true,
-            Expr::Block(_)
-            | Expr::Branch(_) => false,
+            Expr::Block(_) | Expr::Branch(_) => false,
+            Expr::While(ExprWhile { body, .. }) => body.needs_termination(),
         }
     }
 }
