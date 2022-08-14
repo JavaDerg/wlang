@@ -168,7 +168,8 @@ impl<'a> Expr<'a> {
             | Expr::Call(_)
             | Expr::Index(_)
             | Expr::Binary(_) => true,
-            Expr::Block(_) => false,
+            Expr::Block(_)
+            | Expr::Branch(_) => false,
         }
     }
 }

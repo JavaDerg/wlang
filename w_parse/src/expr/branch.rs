@@ -4,6 +4,7 @@ use nom::combinator::{map, opt};
 use nom::sequence::pair;
 use w_tokenize::Span;
 
+#[derive(Debug, Clone)]
 pub struct ExprBranch<'a> {
     pub span_if: Span<'a>,
     pub cond: Box<Expr<'a>>,
