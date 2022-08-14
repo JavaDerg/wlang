@@ -8,8 +8,6 @@ use nom::Parser;
 use std::rc::Rc;
 use w_tokenize::{Kind, Span};
 
-pub struct Many<T>(Vec<T>);
-
 #[derive(Debug, Clone)]
 pub struct ExprTuple<'a> {
     pub span: Span<'a>,
@@ -34,13 +32,7 @@ pub fn parse_tuple(i: TokenSpan) -> ParResult<ExprTuple> {
     let tuple = assert_matches!(tuple.kind, Kind::Tuple(vals) => TokenSpan::new(i.file, vals));
     let (_, vals) = all_consuming(parse_many0(parse_expression))(tuple)?;
 
-    Ok((
-        i,
-        ExprTuple {
-            span,
-            values: vals.0,
-        },
-    ))
+    Ok((i, ExprTuple { span, values: vals }))
 }
 
 pub fn parse_array(i: TokenSpan) -> ParResult<ExprArray> {
@@ -49,13 +41,7 @@ pub fn parse_array(i: TokenSpan) -> ParResult<ExprArray> {
     let array = assert_matches!(array.kind, Kind::Array(vals) => TokenSpan::new(i.file, vals));
     let (_, vals) = all_consuming(parse_many0(parse_expression))(array)?;
 
-    Ok((
-        i,
-        ExprArray {
-            span,
-            values: vals.0,
-        },
-    ))
+    Ok((i, ExprArray { span, values: vals }))
 }
 
 pub fn parse_object(i: TokenSpan) -> ParResult<ExprObject> {
@@ -67,24 +53,15 @@ pub fn parse_object(i: TokenSpan) -> ParResult<ExprObject> {
         |(k, _, v)| (k, v),
     )))(block)?;
 
-    Ok((
-        i,
-        ExprObject {
-            span,
-            values: vals.0,
-        },
-    ))
+    Ok((i, ExprObject { span, values: vals }))
 }
 
-pub fn parse_many0<'a, F, T: 'a>(parser: F) -> impl FnMut(TokenSpan<'a>) -> ParResult<'a, Many<T>>
+pub fn parse_many0<'a, F, T: 'a>(parser: F) -> impl FnMut(TokenSpan<'a>) -> ParResult<'a, Vec<T>>
 where
     F: Parser<TokenSpan<'a>, T, ErrorChain<'a>>,
 {
-    map(
-        terminated(
-            separated_list0(Weak(Kind::Comma), parser),
-            opt(Weak(Kind::Comma)),
-        ),
-        Many,
+    terminated(
+        separated_list0(Weak(Kind::Comma), parser),
+        opt(Weak(Kind::Comma)),
     )
 }

@@ -19,6 +19,8 @@ use nom::multi::many0;
 use nom::{Err, InputTake};
 use w_tokenize::{Kind, Number, Span, Token};
 
+pub use many::parse_many0;
+
 mod block;
 mod branch;
 mod call;
@@ -33,7 +35,8 @@ mod unary;
 
 #[macro_export]
 macro_rules! tag {
-    ($pt:pat, $spt:pat => $res:expr) => {
+    ($pt:pat, $spt:pat => $res:expr) => {{
+        use w_tokenize::Token;
         crate::expr::tag(
             |tk| match &tk.kind {
                 $pt => true,
@@ -44,7 +47,7 @@ macro_rules! tag {
                 _ => unreachable!(),
             },
         )
-    };
+    }};
 }
 
 #[derive(Debug, Clone)]
@@ -136,7 +139,7 @@ fn parse_expr_post_pass(i: TokenSpan, deep: bool) -> ParResult<Expr> {
     ))(i)
 }
 
-fn tag<'a, O: 'a>(
+pub fn tag<'a, O: 'a>(
     parser: fn(&Token<'a>) -> bool,
     map: fn(Token<'a>) -> O,
 ) -> impl FnMut(TokenSpan<'a>) -> ParResult<'a, O> {
