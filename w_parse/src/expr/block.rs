@@ -3,7 +3,8 @@ use crate::{ParResult, TokenSpan, Weak};
 use assert_matches::assert_matches;
 use either::Either;
 use nom::branch::alt;
-use nom::combinator::{eof, map};
+use nom::combinator::{cond, eof, map, opt};
+use nom::sequence::pair;
 use nom::Parser;
 use std::rc::Rc;
 use w_tokenize::{Kind, Span, Token};
@@ -11,7 +12,7 @@ use w_tokenize::{Kind, Span, Token};
 #[derive(Debug, Clone)]
 pub struct Statement<'a> {
     pub expr: Expr<'a>,
-    pub sim: Token<'a>,
+    pub sim: Option<Token<'a>>,
 }
 
 #[derive(Debug, Clone)]
@@ -32,12 +33,26 @@ pub fn parse_block(i: TokenSpan) -> ParResult<ExprBlock> {
     loop {
         let (ni, expr) = parse_expression(i)?;
         let (ni, sim) = alt((
-            map(Weak(Kind::Semicolon), Either::Left),
+            map(
+                pair(
+                    alt((
+                        map(Weak(Kind::Semicolon), Some),
+                        cond(expr.needs_termination(), Weak(Kind::Semicolon)),
+                    )),
+                    opt(eof),
+                ),
+                Either::Left,
+            ),
             map(eof, Either::Right),
         ))(ni)?;
 
         match sim {
-            Either::Left(sim) => acc.push(Statement { expr, sim }),
+            Either::Left((sim, Some(_))) => {
+                acc.push(Statement { expr, sim });
+                last = None;
+                break;
+            }
+            Either::Left((sim, None)) => acc.push(Statement { expr, sim }),
             // EOF
             Either::Right(_) => {
                 last = Some(expr);

@@ -10,7 +10,7 @@ use nom::branch::alt;
 
 use crate::expr::block::ExprBlock;
 use crate::expr::ctor::{parse_ctor, ExprCtor};
-use crate::expr::ops::{ExprBinary, parse_binary_ops};
+use crate::expr::ops::{parse_binary_ops, ExprBinary};
 use nom::combinator::{cond, map, map_opt, opt, verify};
 use nom::error::{ErrorKind, ParseError};
 use nom::multi::many0;
