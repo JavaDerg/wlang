@@ -16,8 +16,10 @@ use nom::error::{ErrorKind, ParseError};
 use nom::multi::many0;
 use nom::{Err, InputTake};
 use w_tokenize::{Kind, Number, Span, Token};
+use crate::expr::branch::{ExprBranch, parse_branch};
 
 mod block;
+mod branch;
 mod call;
 mod ctor;
 mod field;
@@ -53,6 +55,8 @@ pub enum Expr<'a> {
 
     Block(ExprBlock<'a>),
     Binary(ExprBinary<'a>),
+
+    Branch(ExprBranch<'a>),
 
     Number(Number<'a>),
     String(Span<'a>, String),
@@ -122,6 +126,7 @@ fn parse_expr_post_pass(i: TokenSpan, deep: bool) -> ParResult<Expr> {
         map(parse_name, Expr::Ident),
         map(parse_tuple, Expr::Tuple),
         map(parse_array, Expr::Array),
+        map(parse_branch, Expr::Branch),
         tag!(Kind::String(_), Token { kind: Kind::String(num), span } => Expr::String(span, num)),
         tag!(Kind::Number(_), Token { kind: Kind::Number(num), .. } => Expr::Number(num)),
     ))(i)
