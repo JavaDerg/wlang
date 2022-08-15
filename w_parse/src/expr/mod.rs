@@ -17,7 +17,7 @@ use nom::combinator::{cond, map, map_opt, opt, verify};
 use nom::error::{ErrorKind, ParseError};
 use nom::multi::many0;
 use nom::{Err, InputTake};
-use w_tokenize::{Kind, Number, Span, Token};
+use w_tokenize::{Number, Span, Token};
 
 pub use many::parse_many0;
 

@@ -1,5 +1,5 @@
 use nom::combinator::map;
-use w_tokenize::{Kind, Span};
+use w_tokenize::{Span};
 use crate::{ParResult, tag, TokenSpan};
 
 pub struct TyNever<'a>(Span<'a>);

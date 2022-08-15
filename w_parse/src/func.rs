@@ -1,7 +1,7 @@
 use crate::expr::parse_many0;
-use crate::{parse_keyword, parse_name, parse_type, tag, Ident, ParResult, TokenSpan, ItemTy};
+use crate::{parse_keyword, parse_type, tag, ParResult, TokenSpan, ItemTy};
 use nom::combinator::{all_consuming, map};
-use w_tokenize::{Kind, Span};
+use w_tokenize::{Span};
 use crate::expr::block::{ExprBlock, parse_block};
 use crate::util::{NameTyPair, parse_name_ty_pair};
 

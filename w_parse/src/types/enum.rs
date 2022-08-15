@@ -4,7 +4,7 @@ use w_tokenize::Span;
 use crate::{Ident, ParResult, parse_keyword, parse_name, tag, TokenSpan};
 use crate::expr::parse_many0;
 use crate::types::tuple::{parse_ty_tuple, TyTuple};
-use crate::util::{NameTyPair, parse_name_ty_pair};
+
 
 pub struct TyEnum<'a> {
     pub span_enum: Span<'a>,
