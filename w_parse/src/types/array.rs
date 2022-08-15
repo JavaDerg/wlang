@@ -1,6 +1,6 @@
+use crate::{parse_type, tag, ItemTy, ParResult, TokenSpan};
 use nom::combinator::{all_consuming, map, opt};
 use w_tokenize::Number;
-use crate::{ItemTy, ParResult, parse_type, tag, TokenSpan};
 
 pub struct TyArray<'a> {
     pub ty: Box<ItemTy<'a>>,
@@ -12,7 +12,7 @@ pub fn parse_ty_array(i: TokenSpan) -> ParResult<TyArray> {
     let array = TokenSpan::new(i.file.clone(), array);
 
     let (_, size) = all_consuming(opt(
-        tag!(Kind::Number(_), Token { kind: Kind::Number(n), .. } => n)
+        tag!(Kind::Number(_), Token { kind: Kind::Number(n), .. } => n),
     ))(array)?;
 
     let (i, ty) = map(parse_type, Box::new)(i)?;

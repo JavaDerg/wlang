@@ -1,9 +1,9 @@
+use crate::expr::block::{parse_block, ExprBlock};
 use crate::expr::parse_many0;
-use crate::{parse_keyword, parse_type, tag, ParResult, TokenSpan, ItemTy};
+use crate::util::{parse_name_ty_pair, NameTyPair};
+use crate::{parse_keyword, parse_type, tag, ItemTy, ParResult, TokenSpan};
 use nom::combinator::{all_consuming, map};
-use w_tokenize::{Span};
-use crate::expr::block::{ExprBlock, parse_block};
-use crate::util::{NameTyPair, parse_name_ty_pair};
+use w_tokenize::Span;
 
 pub struct ItemFunc<'a> {
     pub func: TyFunc<'a>,
@@ -20,13 +20,7 @@ pub fn parse_item_func(i: TokenSpan) -> ParResult<ItemFunc> {
     let (i, func) = parse_ty_func(i)?;
     let (i, body) = parse_block(i)?;
 
-    Ok((
-        i,
-        ItemFunc {
-            func,
-            body,
-        },
-    ))
+    Ok((i, ItemFunc { func, body }))
 }
 
 pub fn parse_ty_func(i: TokenSpan) -> ParResult<TyFunc> {
@@ -35,11 +29,14 @@ pub fn parse_ty_func(i: TokenSpan) -> ParResult<TyFunc> {
     let (i, args) = parse_func_args(i)?;
     let (i, ret_ty) = map(parse_type, Box::new)(i)?;
 
-    Ok((i, TyFunc {
-        span_func,
-        args,
-        ret_ty
-    }))
+    Ok((
+        i,
+        TyFunc {
+            span_func,
+            args,
+            ret_ty,
+        },
+    ))
 }
 
 pub fn parse_func_args(i: TokenSpan) -> ParResult<Vec<NameTyPair>> {

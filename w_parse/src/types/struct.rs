@@ -1,8 +1,8 @@
+use crate::expr::parse_many0;
+use crate::util::{parse_name_ty_pair, NameTyPair};
+use crate::{parse_keyword, tag, ParResult, TokenSpan};
 use nom::combinator::{all_consuming, map};
 use w_tokenize::Span;
-use crate::{ParResult, parse_keyword, tag, TokenSpan};
-use crate::expr::parse_many0;
-use crate::util::{NameTyPair, parse_name_ty_pair};
 
 pub struct TyStruct<'a> {
     pub span_struct: Span<'a>,
@@ -17,5 +17,11 @@ pub fn parse_ty_struct(i: TokenSpan) -> ParResult<TyStruct> {
 
     let (_, fields) = all_consuming(parse_many0(parse_name_ty_pair))(block)?;
 
-    Ok((i, TyStruct { span_struct, fields }))
+    Ok((
+        i,
+        TyStruct {
+            span_struct,
+            fields,
+        },
+    ))
 }

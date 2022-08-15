@@ -1,6 +1,6 @@
+use crate::{tag, ParResult, TokenSpan};
 use nom::combinator::map;
-use w_tokenize::{Span};
-use crate::{ParResult, tag, TokenSpan};
+use w_tokenize::Span;
 
 pub struct TyNever<'a>(Span<'a>);
 

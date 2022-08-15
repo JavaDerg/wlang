@@ -1,9 +1,9 @@
+use crate::func::{parse_item_func, ItemFunc};
+use crate::{parse_name, parse_type, Ident, ItemTy, ParResult, TokenSpan, Weak};
 use nom::branch::alt;
-use crate::{parse_name, parse_type, Ident, ParResult, TokenSpan, ItemTy, Weak};
 use nom::combinator::{cond, map};
 use nom::Parser;
 use w_tokenize::{Kind, Token};
-use crate::func::{ItemFunc, parse_item_func};
 
 pub struct ItemDefiner<'a> {
     pub name: Ident<'a>,
@@ -29,10 +29,7 @@ pub fn parse_definer(i: TokenSpan) -> ParResult<ItemDefiner> {
         map(parse_type_definer, DefinerKind::Type),
     ))(i)?;
 
-    Ok((i, ItemDefiner {
-        name,
-        kind,
-    }))
+    Ok((i, ItemDefiner { name, kind }))
 }
 
 pub fn parse_type_definer(i: TokenSpan) -> ParResult<TypeDefiner> {

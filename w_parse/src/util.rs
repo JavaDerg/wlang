@@ -1,4 +1,4 @@
-use crate::{Ident, ItemTy, ParResult, parse_name, parse_type, TokenSpan};
+use crate::{parse_name, parse_type, Ident, ItemTy, ParResult, TokenSpan};
 
 pub struct NameTyPair<'a> {
     pub name: Ident<'a>,

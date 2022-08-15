@@ -1,19 +1,14 @@
+pub mod array;
+pub mod r#enum;
 pub mod never;
 pub mod ptr;
 pub mod r#struct;
-pub mod r#enum;
 pub mod tuple;
-pub mod array;
 
 use crate::{ParResult, TokenSpan};
 
 use nom::branch::alt;
-use nom::combinator::{map};
-
-
-
-
-
+use nom::combinator::map;
 
 use crate::expr::path::{parse_path, Path};
 use crate::func::{parse_ty_func, TyFunc};
