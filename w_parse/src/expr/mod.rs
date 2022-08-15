@@ -36,7 +36,7 @@ pub mod unary;
 #[macro_export]
 macro_rules! tag {
     ($pt:pat) => {{
-        use w_tokenize::Token;
+        use w_tokenize::{Kind, Token};
         crate::expr::tag(
             |tk| match &tk.kind {
                 $pt => true,
@@ -49,7 +49,7 @@ macro_rules! tag {
         )
     }};
     ($pt:pat, $spt:pat => $res:expr) => {{
-        use w_tokenize::Token;
+        use w_tokenize::{Kind, Token};
         crate::expr::tag(
             |tk| match &tk.kind {
                 $pt => true,
