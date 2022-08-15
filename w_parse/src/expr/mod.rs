@@ -21,20 +21,33 @@ use w_tokenize::{Kind, Number, Span, Token};
 
 pub use many::parse_many0;
 
-mod block;
-mod branch;
-mod call;
-mod ctor;
-mod field;
-mod index;
-mod loops;
-mod many;
-mod ops;
-mod path;
-mod unary;
+pub mod block;
+pub mod branch;
+pub mod call;
+pub mod ctor;
+pub mod field;
+pub mod index;
+pub mod loops;
+pub mod many;
+pub mod ops;
+pub mod path;
+pub mod unary;
 
 #[macro_export]
 macro_rules! tag {
+    ($pt:pat) => {{
+        use w_tokenize::Token;
+        crate::expr::tag(
+            |tk| match &tk.kind {
+                $pt => true,
+                _ => false,
+            },
+            |tk| match tk {
+                Token { span, .. } => span,
+                _ => unreachable!(),
+            },
+        )
+    }};
     ($pt:pat, $spt:pat => $res:expr) => {{
         use w_tokenize::Token;
         crate::expr::tag(
