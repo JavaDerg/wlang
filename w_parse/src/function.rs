@@ -2,11 +2,13 @@ use crate::expr::parse_many0;
 use crate::{parse_keyword, parse_name, parse_type, tag, Ident, ParResult, TokenSpan, Type};
 use nom::combinator::{all_consuming, map};
 use w_tokenize::{Kind, Span};
+use crate::expr::block::{ExprBlock, parse_block};
 
 pub struct ItemFunc<'a> {
     pub span_func: Span<'a>,
     pub args: Vec<FuncArg<'a>>,
     pub ret_ty: Type<'a>,
+    pub body: ExprBlock<'a>,
 }
 
 pub struct FuncArg<'a> {
@@ -16,8 +18,11 @@ pub struct FuncArg<'a> {
 
 pub fn parse_func(i: TokenSpan) -> ParResult<ItemFunc> {
     let (i, span_func) = map(parse_keyword("func"), |id| id.0)(i)?;
+
     let (i, args) = parse_func_args(i)?;
     let (i, ret_ty) = parse_type(i)?;
+
+    let (i, body) = parse_block(i)?;
 
     Ok((
         i,
@@ -25,6 +30,7 @@ pub fn parse_func(i: TokenSpan) -> ParResult<ItemFunc> {
             span_func,
             args,
             ret_ty,
+            body,
         },
     ))
 }
