@@ -11,7 +11,7 @@ pub struct ExprWhile<'a> {
 }
 
 pub fn parse_while(i: TokenSpan) -> ParResult<ExprWhile> {
-    let (i, span_while) = map(parse_keyword("while"), |id| id.0)(i)?;
+    let (i, span_while) = parse_keyword("while")(i)?;
     let (i, cond) = map(parse_expression, Box::new)(i)?;
     let (i, body) = map(parse_expression, Box::new)(i)?;
 

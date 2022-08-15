@@ -1,7 +1,7 @@
 use crate::expr::parse_many0;
 use crate::util::{parse_name_ty_pair, NameTyPair};
 use crate::{parse_keyword, tag, ParResult, TokenSpan};
-use nom::combinator::{all_consuming, map};
+use nom::combinator::all_consuming;
 use w_tokenize::Span;
 
 pub struct TyStruct<'a> {
@@ -10,7 +10,7 @@ pub struct TyStruct<'a> {
 }
 
 pub fn parse_ty_struct(i: TokenSpan) -> ParResult<TyStruct> {
-    let (i, span_struct) = map(parse_keyword("struct"), |id| id.0)(i)?;
+    let (i, span_struct) = parse_keyword("struct")(i)?;
 
     let (i, block) = tag!(Kind::Block(_), Token { kind: Kind::Block(vals), .. } => vals)(i)?;
     let block = TokenSpan::new(i.file.clone(), block);

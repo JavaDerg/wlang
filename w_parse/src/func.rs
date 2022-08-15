@@ -24,7 +24,7 @@ pub fn parse_item_func(i: TokenSpan) -> ParResult<ItemFunc> {
 }
 
 pub fn parse_ty_func(i: TokenSpan) -> ParResult<TyFunc> {
-    let (i, span_func) = map(parse_keyword("func"), |id| id.0)(i)?;
+    let (i, span_func) = parse_keyword("func")(i)?;
 
     let (i, args) = parse_func_args(i)?;
     let (i, ret_ty) = map(parse_type, Box::new)(i)?;

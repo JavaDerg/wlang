@@ -1,6 +1,6 @@
 use crate::expr::{parse_expression, Expr};
-use crate::{parse_keyword, Ident, ParResult, TokenSpan};
-use nom::combinator::{map, opt};
+use crate::{parse_keyword, ParResult, TokenSpan};
+use nom::combinator::opt;
 use nom::sequence::pair;
 use w_tokenize::Span;
 
@@ -15,7 +15,7 @@ pub struct ExprBranch<'a> {
 }
 
 pub fn parse_branch(i: TokenSpan) -> ParResult<ExprBranch> {
-    let (i, span_if) = map(parse_keyword("if"), |id| id.0)(i)?;
+    let (i, span_if) = parse_keyword("if")(i)?;
 
     let (i, cond) = parse_expression(i)?;
     let (i, body) = parse_expression(i)?;
@@ -23,7 +23,7 @@ pub fn parse_branch(i: TokenSpan) -> ParResult<ExprBranch> {
     let (i, opt_else) = opt(parse_else)(i)?;
 
     let (span_else, body_else) =
-        opt_else.map_or_else(|| (None, None), |(ie, be)| (Some(ie.0), Some(Box::new(be))));
+        opt_else.map_or_else(|| (None, None), |(ie, be)| (Some(ie), Some(Box::new(be))));
 
     Ok((
         i,
@@ -37,6 +37,6 @@ pub fn parse_branch(i: TokenSpan) -> ParResult<ExprBranch> {
     ))
 }
 
-fn parse_else(i: TokenSpan) -> ParResult<(Ident, Expr)> {
+fn parse_else(i: TokenSpan) -> ParResult<(Span, Expr)> {
     pair(parse_keyword("else"), parse_expression)(i)
 }
