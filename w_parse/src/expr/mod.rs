@@ -36,16 +36,13 @@ pub mod unary;
 #[macro_export]
 macro_rules! tag {
     ($pt:pat) => {{
-        use w_tokenize::{Kind, Token};
+        use w_tokenize::Kind;
         crate::expr::tag(
             |tk| match &tk.kind {
                 $pt => true,
                 _ => false,
             },
-            |tk| match tk {
-                Token { span, .. } => span,
-                _ => unreachable!(),
-            },
+            |tk| tk.span,
         )
     }};
     ($pt:pat, $spt:pat => $res:expr) => {{
