@@ -1,4 +1,4 @@
-use crate::func::{parse_item_func, ItemFunc};
+use crate::item::func::{parse_item_func, ItemFunc};
 use crate::{parse_name, parse_type, Ident, ItemTy, ParResult, TokenSpan, Weak};
 use nom::branch::alt;
 use nom::combinator::{cond, map};

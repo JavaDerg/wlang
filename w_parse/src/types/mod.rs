@@ -4,6 +4,7 @@ pub mod never;
 pub mod ptr;
 pub mod r#struct;
 pub mod tuple;
+pub mod func;
 
 use crate::{ParResult, TokenSpan};
 
@@ -11,8 +12,8 @@ use nom::branch::alt;
 use nom::combinator::map;
 
 use crate::expr::path::{parse_path, Path};
-use crate::func::{parse_ty_func, TyFunc};
 use crate::types::array::{parse_ty_array, TyArray};
+use crate::types::func::{parse_ty_func, TyFunc};
 use crate::types::never::{parse_ty_never, TyNever};
 use crate::types::ptr::{parse_ty_ptr, TyPtr};
 use crate::types::r#enum::{parse_ty_enum, TyEnum};

@@ -1,16 +1,15 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-mod definer;
 mod error;
 mod expr;
-mod func;
 mod parser;
 mod types;
 mod util;
+mod item;
 
 use crate::parser::Weak;
 pub use crate::parser::{ParResult, TokenSpan};
-use crate::types::{parse_type, ItemTy};
+use crate::types::{ItemTy, parse_type};
 use std::borrow::Cow;
 
 use nom::combinator::{map, verify};
