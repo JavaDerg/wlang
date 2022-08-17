@@ -49,7 +49,7 @@ pub fn parse_object(i: TokenSpan) -> ParResult<ExprObject> {
     let span = block.span;
     let block = assert_matches!(block.kind, Kind::Block(vals) => TokenSpan::new(i.file, vals));
     let (_, vals) = all_consuming(parse_many0(map(
-        tuple((parse_name, Weak(Kind::Set), parse_expression)),
+        tuple((parse_name, Weak(Kind::Assign), parse_expression)),
         |(k, _, v)| (k, v),
     )))(block)?;
 

@@ -1,15 +1,15 @@
-use crate::item::definer::ItemDefiner;
+use crate::item::named::ItemNamed;
 use crate::{ParResult, TokenSpan};
 use nom::branch::alt;
 use nom::combinator::map;
 
-pub mod definer;
+pub mod named;
 pub mod func;
 
 pub enum Item<'a> {
-    Definer(ItemDefiner<'a>),
+    Definer(ItemNamed<'a>),
 }
 
 pub fn parse_item(i: TokenSpan) -> ParResult<Item> {
-    alt((map(definer::parse_definer, Item::Definer),))(i)
+    alt((map(named::parse_named, Item::Definer),))(i)
 }

@@ -20,6 +20,8 @@ use nom::{Err, InputTake};
 use w_tokenize::{Number, Span, Token};
 
 pub use many::parse_many0;
+use crate::expr::assign::{ExprAssignment, parse_assignment};
+use crate::expr::define::{ExprDefine, parse_define};
 
 pub mod block;
 pub mod branch;
@@ -32,6 +34,8 @@ pub mod many;
 pub mod ops;
 pub mod path;
 pub mod unary;
+pub mod assign;
+pub mod define;
 
 #[macro_export]
 macro_rules! tag {
@@ -73,6 +77,9 @@ pub enum Expr<'a> {
 
     Branch(ExprBranch<'a>),
     While(ExprWhile<'a>),
+
+    Define(ExprDefine<'a>),
+    Assign(ExprAssignment<'a>),
 
     Number(Number<'a>),
     String(Span<'a>, String),
@@ -144,6 +151,8 @@ fn parse_expr_post_pass(i: TokenSpan, deep: bool) -> ParResult<Expr> {
         map(parse_array, Expr::Array),
         map(parse_branch, Expr::Branch),
         map(parse_while, Expr::While),
+        map(parse_assignment, Expr::Assign),
+        map(parse_define, Expr::Define),
         tag!(Kind::String(_), Token { kind: Kind::String(num), span } => Expr::String(span, num)),
         tag!(Kind::Number(_), Token { kind: Kind::Number(num), .. } => Expr::Number(num)),
     ))(i)
@@ -184,7 +193,9 @@ impl<'a> Expr<'a> {
             | Expr::Field(_)
             | Expr::Call(_)
             | Expr::Index(_)
-            | Expr::Binary(_) => true,
+            | Expr::Binary(_)
+            | Expr::Assign(_)
+            | Expr::Define(_) => true,
             Expr::Block(_) | Expr::Branch(_) => false,
             Expr::While(ExprWhile { body, .. }) => body.needs_termination(),
         }

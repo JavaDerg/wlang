@@ -5,34 +5,34 @@ use nom::combinator::{cond, map};
 use nom::Parser;
 use w_tokenize::{Kind, Token};
 
-pub struct ItemDefiner<'a> {
+pub struct ItemNamed<'a> {
     pub name: Ident<'a>,
-    pub kind: DefinerKind<'a>,
+    pub kind: NamedKind<'a>,
 }
 
-pub enum DefinerKind<'a> {
-    Type(TypeDefiner<'a>),
+pub enum NamedKind<'a> {
+    Type(ItemNamedType<'a>),
     Func(ItemFunc<'a>),
 }
 
-pub struct TypeDefiner<'a> {
+pub struct ItemNamedType<'a> {
     pub ty: ItemTy<'a>,
     pub terminated: Option<Token<'a>>,
 }
 
-pub fn parse_definer(i: TokenSpan) -> ParResult<ItemDefiner> {
+pub fn parse_named(i: TokenSpan) -> ParResult<ItemNamed> {
     let (i, name) = parse_name(i)?;
     let (i, _) = Weak(Kind::DoubleCol).parse(i)?;
 
     let (i, kind) = alt((
-        map(parse_item_func, DefinerKind::Func),
-        map(parse_type_definer, DefinerKind::Type),
+        map(parse_item_func, NamedKind::Func),
+        map(parse_type_definer, NamedKind::Type),
     ))(i)?;
 
-    Ok((i, ItemDefiner { name, kind }))
+    Ok((i, ItemNamed { name, kind }))
 }
 
-pub fn parse_type_definer(i: TokenSpan) -> ParResult<TypeDefiner> {
+pub fn parse_type_definer(i: TokenSpan) -> ParResult<ItemNamedType> {
     let (i, ty) = parse_type(i)?;
 
     let terminated = match &ty {
@@ -48,5 +48,5 @@ pub fn parse_type_definer(i: TokenSpan) -> ParResult<TypeDefiner> {
 
     let (i, terminated) = cond(terminated, Weak(Kind::Semicolon))(i)?;
 
-    Ok((i, TypeDefiner { ty, terminated }))
+    Ok((i, ItemNamedType { ty, terminated }))
 }

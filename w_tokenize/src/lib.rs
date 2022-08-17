@@ -49,7 +49,7 @@ pub enum Kind<'a> {
     /// `:=`
     Define,
     /// `=`
-    Set,
+    Assign,
 
     /// `,`
     Comma,
@@ -233,7 +233,7 @@ fn token(i: Span) -> TokResult<Option<Token>> {
             op(",", "", || Kind::Comma),
             op(".", "", || Kind::Dot),
             op(";", "", || Kind::Semicolon),
-            op("=", "", || Kind::Set),
+            op("=", "", || Kind::Assign),
         )),
     ))(i);
 
@@ -422,7 +422,7 @@ impl<'a> Kind<'a> {
             Kind::Ident => 0,
             Kind::DoubleCol => 1,
             Kind::Define => 2,
-            Kind::Set => 3,
+            Kind::Assign => 3,
             Kind::Comma => 4,
             Kind::Semicolon => 5,
             Kind::Dot => 6,
