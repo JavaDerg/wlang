@@ -2,23 +2,23 @@
 
 pub mod error;
 pub mod expr;
+pub mod item;
+pub mod module;
 pub mod parser;
 pub mod types;
 pub mod util;
-pub mod item;
-pub mod module;
 
-use crate::parser::Weak;
-use crate::types::{ItemTy, parse_type};
 use crate::error::{Error, ErrorChain};
-use std::borrow::Cow;
+use crate::parser::Weak;
+use crate::types::{parse_type, ItemTy};
 use nom::combinator::{map, verify};
 use nom::{Err, Parser};
+use std::borrow::Cow;
 use std::rc::Rc;
 use w_tokenize::{Kind, Span};
 
 pub use crate::parser::{ParResult, TokenSpan};
-pub use module::{Module, parse_module};
+pub use module::{parse_module, Module};
 
 pub type SVec<T> = Rc<[T]>;
 

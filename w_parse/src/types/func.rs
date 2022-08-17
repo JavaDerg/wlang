@@ -1,8 +1,8 @@
+use crate::expr::parse_many0;
+use crate::util::{parse_name_ty_pair, NameTyPair};
+use crate::{parse_keyword, parse_type, tag, ItemTy, ParResult, TokenSpan};
 use nom::combinator::{all_consuming, map};
 use w_tokenize::Span;
-use crate::{ItemTy, ParResult, parse_keyword, parse_type, tag, TokenSpan};
-use crate::expr::parse_many0;
-use crate::util::{NameTyPair, parse_name_ty_pair};
 
 pub struct TyFunc<'a> {
     pub span_func: Span<'a>,

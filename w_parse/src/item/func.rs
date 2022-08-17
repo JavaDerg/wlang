@@ -1,6 +1,6 @@
 use crate::expr::block::{parse_block, ExprBlock};
-use crate::{ParResult, TokenSpan};
 use crate::types::func::{parse_ty_func, TyFunc};
+use crate::{ParResult, TokenSpan};
 
 pub struct ItemFunc<'a> {
     pub func: TyFunc<'a>,

@@ -1,4 +1,4 @@
-use crate::item::{Item, parse_item};
+use crate::item::{parse_item, Item};
 use crate::{ParResult, TokenSpan};
 
 // Leaving this open for mode things in the future like imports

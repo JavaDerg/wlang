@@ -1,10 +1,10 @@
 pub mod array;
 pub mod r#enum;
+pub mod func;
 pub mod never;
 pub mod ptr;
 pub mod r#struct;
 pub mod tuple;
-pub mod func;
 
 use crate::{ParResult, TokenSpan};
 
