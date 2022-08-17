@@ -1,24 +1,24 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
-mod error;
-mod expr;
-mod parser;
-mod types;
-mod util;
-mod item;
+pub mod error;
+pub mod expr;
+pub mod parser;
+pub mod types;
+pub mod util;
+pub mod item;
+pub mod module;
 
 use crate::parser::Weak;
-pub use crate::parser::{ParResult, TokenSpan};
 use crate::types::{ItemTy, parse_type};
-use std::borrow::Cow;
-
-use nom::combinator::{map, verify};
-
-use nom::{Err, Parser};
-
 use crate::error::{Error, ErrorChain};
+use std::borrow::Cow;
+use nom::combinator::{map, verify};
+use nom::{Err, Parser};
 use std::rc::Rc;
 use w_tokenize::{Kind, Span};
+
+pub use crate::parser::{ParResult, TokenSpan};
+pub use module::{Module, parse_module};
 
 pub type SVec<T> = Rc<[T]>;
 
