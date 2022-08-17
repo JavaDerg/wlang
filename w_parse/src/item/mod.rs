@@ -3,8 +3,8 @@ use crate::{ParResult, TokenSpan};
 use nom::branch::alt;
 use nom::combinator::map;
 
-pub mod named;
 pub mod func;
+pub mod named;
 
 pub enum Item<'a> {
     Definer(ItemNamed<'a>),

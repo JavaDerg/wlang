@@ -19,14 +19,16 @@ use nom::multi::many0;
 use nom::{Err, InputTake};
 use w_tokenize::{Number, Span, Token};
 
+use crate::expr::assign::{parse_assignment, ExprAssignment};
+use crate::expr::define::{parse_define, ExprDefine};
 pub use many::parse_many0;
-use crate::expr::assign::{ExprAssignment, parse_assignment};
-use crate::expr::define::{ExprDefine, parse_define};
 
+pub mod assign;
 pub mod block;
 pub mod branch;
 pub mod call;
 pub mod ctor;
+pub mod define;
 pub mod field;
 pub mod index;
 pub mod loops;
@@ -34,8 +36,6 @@ pub mod many;
 pub mod ops;
 pub mod path;
 pub mod unary;
-pub mod assign;
-pub mod define;
 
 #[macro_export]
 macro_rules! tag {
