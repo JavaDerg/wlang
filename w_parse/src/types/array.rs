@@ -9,7 +9,7 @@ pub struct TyArray<'a> {
 
 pub fn parse_ty_array(i: TokenSpan) -> ParResult<TyArray> {
     let (i, array) = tag!(Kind::Array(_), Token { kind: Kind::Array(vals), .. } => vals)(i)?;
-    let array = TokenSpan::new(i.file.clone(), array);
+    let array = TokenSpan::new(i.file, array);
 
     let (_, size) = all_consuming(opt(
         tag!(Kind::Number(_), Token { kind: Kind::Number(n), .. } => n),

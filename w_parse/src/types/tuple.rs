@@ -11,7 +11,7 @@ pub struct TyTuple<'a> {
 pub fn parse_ty_tuple(i: TokenSpan) -> ParResult<TyTuple> {
     let (i, (span, tuple)) =
         tag!(Kind::Tuple(_), Token { kind: Kind::Tuple(vals), span } => (span, vals))(i)?;
-    let tuple = TokenSpan::new(i.file.clone(), tuple);
+    let tuple = TokenSpan::new(i.file, tuple);
 
     let (_, types) = all_consuming(parse_many0(parse_type))(tuple)?;
 

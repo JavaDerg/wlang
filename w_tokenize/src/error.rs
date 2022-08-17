@@ -175,9 +175,9 @@ impl<'a> Debug for TokenError<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.kind {
             TokenErrorKind::Nom(err) => writeln!(f, "Error: {err:?}\nCaused in:")?,
-            TokenErrorKind::Other(err) => writeln!(f, "Error: {:?}\nCaused by:", &*err)?,
+            TokenErrorKind::Other(err) => writeln!(f, "Error: {:?}\nCaused by:", err)?,
             TokenErrorKind::NomAndOther(nom, err) => {
-                write!(f, "Error: {nom:?}\nCaused by:\n{:?}", &*err)?
+                write!(f, "Error: {nom:?}\nCaused by:\n{:?}", err)?
             }
             TokenErrorKind::None => f.write_str("Cause: Unknown")?,
         }

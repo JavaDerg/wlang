@@ -14,7 +14,7 @@ pub fn parse_ty_enum(i: TokenSpan) -> ParResult<TyEnum> {
     let (i, span_enum) = parse_keyword("enum")(i)?;
 
     let (i, block) = tag!(Kind::Block(_), Token { kind: Kind::Block(vals), .. } => vals)(i)?;
-    let block = TokenSpan::new(i.file.clone(), block);
+    let block = TokenSpan::new(i.file, block);
 
     let (_, variants) = all_consuming(parse_many0(pair(parse_name, opt(parse_ty_tuple))))(block)?;
 
