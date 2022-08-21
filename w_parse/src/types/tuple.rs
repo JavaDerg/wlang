@@ -3,6 +3,7 @@ use crate::{parse_type, tag, ItemTy, ParResult, TokenSpan};
 use nom::combinator::all_consuming;
 use w_tokenize::Span;
 
+#[derive(Debug, Clone)]
 pub struct TyTuple<'a> {
     pub span: Span<'a>,
     pub types: Vec<ItemTy<'a>>,

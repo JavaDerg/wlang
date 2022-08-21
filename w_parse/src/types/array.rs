@@ -2,6 +2,7 @@ use crate::{parse_type, tag, ItemTy, ParResult, TokenSpan};
 use nom::combinator::{all_consuming, map, opt};
 use w_tokenize::Number;
 
+#[derive(Debug, Clone)]
 pub struct TyArray<'a> {
     pub ty: Box<ItemTy<'a>>,
     pub size: Option<Number<'a>>,

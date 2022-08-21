@@ -6,6 +6,7 @@ use nom::combinator::map;
 pub mod func;
 pub mod named;
 
+#[derive(Debug, Clone)]
 pub enum Item<'a> {
     Definer(ItemNamed<'a>),
 }

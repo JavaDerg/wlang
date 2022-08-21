@@ -20,6 +20,7 @@ use crate::types::r#enum::{parse_ty_enum, TyEnum};
 use crate::types::r#struct::{parse_ty_struct, TyStruct};
 use crate::types::tuple::{parse_ty_tuple, TyTuple};
 
+#[derive(Debug, Clone)]
 pub enum ItemTy<'a> {
     Named(Path<'a>),
     Struct(TyStruct<'a>),

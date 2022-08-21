@@ -5,16 +5,19 @@ use nom::combinator::{cond, map};
 use nom::Parser;
 use w_tokenize::{Kind, Token};
 
+#[derive(Debug, Clone)]
 pub struct ItemNamed<'a> {
     pub name: Ident<'a>,
     pub kind: NamedKind<'a>,
 }
 
+#[derive(Debug, Clone)]
 pub enum NamedKind<'a> {
     Type(ItemNamedType<'a>),
     Func(ItemFunc<'a>),
 }
 
+#[derive(Debug, Clone)]
 pub struct ItemNamedType<'a> {
     pub ty: ItemTy<'a>,
     pub terminated: Option<Token<'a>>,

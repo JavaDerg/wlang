@@ -4,6 +4,7 @@ use crate::{parse_keyword, tag, ParResult, TokenSpan};
 use nom::combinator::all_consuming;
 use w_tokenize::Span;
 
+#[derive(Debug, Clone)]
 pub struct TyStruct<'a> {
     pub span_struct: Span<'a>,
     pub fields: Vec<NameTyPair<'a>>,

@@ -5,6 +5,7 @@ use nom::combinator::{all_consuming, opt};
 use nom::sequence::pair;
 use w_tokenize::Span;
 
+#[derive(Debug, Clone)]
 pub struct TyEnum<'a> {
     pub span_enum: Span<'a>,
     pub variants: Vec<(Ident<'a>, Option<TyTuple<'a>>)>,

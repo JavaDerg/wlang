@@ -4,6 +4,7 @@ use crate::{parse_keyword, parse_type, tag, ItemTy, ParResult, TokenSpan};
 use nom::combinator::{all_consuming, map};
 use w_tokenize::Span;
 
+#[derive(Debug, Clone)]
 pub struct TyFunc<'a> {
     pub span_func: Span<'a>,
     pub args: Vec<NameTyPair<'a>>,

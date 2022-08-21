@@ -1,5 +1,6 @@
 use crate::{parse_name, parse_type, Ident, ItemTy, ParResult, TokenSpan};
 
+#[derive(Debug, Clone)]
 pub struct NameTyPair<'a> {
     pub name: Ident<'a>,
     pub ty: ItemTy<'a>,

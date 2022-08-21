@@ -2,6 +2,7 @@ use crate::expr::block::{parse_block, ExprBlock};
 use crate::types::func::{parse_ty_func, TyFunc};
 use crate::{ParResult, TokenSpan};
 
+#[derive(Debug, Clone)]
 pub struct ItemFunc<'a> {
     pub func: TyFunc<'a>,
     pub body: ExprBlock<'a>,
