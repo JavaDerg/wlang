@@ -13,6 +13,8 @@ use w_parse::Ident;
 pub struct SimpleTypeSystem<'a, 'gc> {
     pub types_arena: &'gc Arena<TypeRef<'a, 'gc>>,
     pub types: RefCell<HashMap<Path<'a>, &'gc TypeRef<'a, 'gc>>>,
+
+    pub previous: Option<&'gc SimpleTypeSystem<'a, 'gc>>,
 }
 
 #[derive(Clone)]

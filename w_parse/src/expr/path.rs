@@ -24,13 +24,24 @@ impl<'a> Hash for Path<'a> {
 }
 
 impl<'a> Path<'a> {
-    pub fn join(&self, other: &Ident<'a>) -> Path<'a> {
+    pub fn join_s(&self, other: &Ident<'a>) -> Path<'a> {
         Path {
             path: self
                 .path
                 .clone()
                 .into_iter()
                 .chain(vec![other.clone()])
+                .collect(),
+        }
+    }
+
+    pub fn join_p(&self, other: &Path<'a>) -> Path<'a> {
+        Path {
+            path: self
+                .path
+                .clone()
+                .into_iter()
+                .chain(other.path.iter().cloned())
                 .collect(),
         }
     }

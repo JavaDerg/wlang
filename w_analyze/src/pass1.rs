@@ -1,15 +1,19 @@
+use crate::data::err::UnresolvedTypeError;
 use crate::data::types::{TypeInfo, TypeKind, TypeRef};
 use crate::data::Location;
 use crate::{ErrorCollector, SimpleTypeSystem};
-use assert_matches::assert_matches;
 use std::cell::RefCell;
+use w_parse::item::import::{Imports, ItemImports};
 use w_parse::item::named::NamedKind;
 use w_parse::item::Item;
 use w_parse::types::ItemTy;
 use w_parse::Module;
-use crate::data::err::UnresolvedTypeError;
 
-pub fn run_pass1<'a>(module: &Module<'a>, tsys: &SimpleTypeSystem<'a, '_>, errs: &ErrorCollector<'a>) {
+pub fn run_pass1<'a>(
+    module: &Module<'a>,
+    tsys: &SimpleTypeSystem<'a, '_>,
+    errs: &ErrorCollector<'a>,
+) {
     let mut progress = true;
     while progress {
         progress = false;
@@ -17,15 +21,19 @@ pub fn run_pass1<'a>(module: &Module<'a>, tsys: &SimpleTypeSystem<'a, '_>, errs:
         for item in module
             .items
             .iter()
-            .filter(|&itm| matches!(itm, Item::Definer(_)))
         {
-            let def = assert_matches!(item, Item::Definer(def) => def);
+            let def = match item {
+                Item::Definer(def) => def,
+                Item::Import(imports) => {
+                    continue;
+                }
+            };
             let ty = match &def.kind {
                 NamedKind::Type(ty) => ty,
                 NamedKind::Func(_) => continue,
             };
 
-            let lpath = module.path.join(&def.name);
+            let lpath = module.path.join_s(&def.name);
 
             if let Some(&tref) = tsys.types.borrow().get(&lpath) {
                 if tref.definition.borrow().is_some() {
@@ -81,4 +89,15 @@ pub fn run_pass1<'a>(module: &Module<'a>, tsys: &SimpleTypeSystem<'a, '_>, errs:
         .iter()
         .filter(|(_, v)| v.definition.borrow().is_none())
         .for_each(|(_, v)| errs.add_error(UnresolvedTypeError(v.loc.clone())))
+}
+
+fn import_imports<'a>(module: &Module<'a>, tsys: &SimpleTypeSystem<'a, '_>, errs: &ErrorCollector<'a>, imports: &ItemImports<'a>) -> bool {
+    for import in &imports.imports {
+        match import {
+            Imports::Single(direct) => {
+
+            }
+            Imports::Multiple(_, _) => {}
+        }
+    }
 }
