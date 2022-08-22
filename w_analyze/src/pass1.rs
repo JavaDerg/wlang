@@ -1,17 +1,17 @@
 use crate::data::err::UnresolvedTypeError;
 use crate::data::types::{TypeInfo, TypeKind, TypeRef};
 use crate::data::Location;
-use crate::{ErrorCollector, SimpleTypeSystem};
+use crate::{ErrorCollector, Module};
 use std::cell::RefCell;
 use w_parse::item::import::{Imports, ItemImports};
 use w_parse::item::named::NamedKind;
 use w_parse::item::Item;
 use w_parse::types::ItemTy;
-use w_parse::Module;
+use w_parse::ParsedModule;
 
 pub fn run_pass1<'a>(
-    module: &Module<'a>,
-    tsys: &SimpleTypeSystem<'a, '_>,
+    module: &ParsedModule<'a>,
+    tsys: &Module<'a, '_>,
     errs: &ErrorCollector<'a>,
 ) {
     let mut progress = true;
@@ -91,7 +91,7 @@ pub fn run_pass1<'a>(
         .for_each(|(_, v)| errs.add_error(UnresolvedTypeError(v.loc.clone())))
 }
 
-fn import_imports<'a>(module: &Module<'a>, tsys: &SimpleTypeSystem<'a, '_>, errs: &ErrorCollector<'a>, imports: &ItemImports<'a>) -> bool {
+fn import_imports<'a>(module: &ParsedModule<'a>, tsys: &Module<'a, '_>, errs: &ErrorCollector<'a>, imports: &ItemImports<'a>) -> bool {
     for import in &imports.imports {
         match import {
             Imports::Single(direct) => {

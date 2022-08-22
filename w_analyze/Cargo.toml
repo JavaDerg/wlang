@@ -9,3 +9,4 @@ w_tokenize = { path = "../w_tokenize" }
 
 assert_matches = "1.5.0"
 typed-arena = "2.0.1"
+either = "1.8.0"

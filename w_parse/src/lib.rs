@@ -18,7 +18,7 @@ use std::rc::Rc;
 use w_tokenize::{Kind, Span};
 
 pub use crate::parser::{ParResult, TokenSpan};
-pub use module::{parse_module, Module};
+pub use module::{parse_module, ParsedModule};
 
 pub type SVec<T> = Rc<[T]>;
 
