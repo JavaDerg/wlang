@@ -23,6 +23,33 @@ impl<'a> TokenSpan<'a> {
             tokens,
         }
     }
+
+    pub fn as_span(&self) -> Span<'a> {
+        let diff = self.local.end - self.local.start;
+        match diff {
+            0 => {
+                let last = &self.tokens[self.local.end];
+                let offset = last.span.location_offset() + last.span.len();
+                self.file.slice(offset..)
+            },
+            1 => self.tokens[self.local.start].span,
+            _ => {
+                let start = self.tokens[self.local.start].span;
+                let end = self.tokens[self.local.end].span;
+
+                let so = start.location_offset();
+                let eo = end.location_offset() + end.len();
+
+                self.file.slice(so..eo)
+            },
+        }
+    }
+}
+
+impl<'a> From<&TokenSpan<'a>> for Span<'a> {
+    fn from(tks: &TokenSpan<'a>) -> Self {
+        tks.as_span()
+    }
 }
 
 impl<'a> Offset for TokenSpan<'a> {

@@ -1,0 +1,11 @@
+[package]
+name = "w_analyze"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+w_parse = { path = "../w_parse" }
+w_tokenize = { path = "../w_tokenize" }
+
+assert_matches = "1.5.0"
+typed-arena = "2.0.1"

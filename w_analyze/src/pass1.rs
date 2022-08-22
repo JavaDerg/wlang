@@ -3,15 +3,13 @@ use crate::data::Location;
 use crate::{ErrorCollector, SimpleTypeSystem};
 use assert_matches::assert_matches;
 use std::cell::RefCell;
-use std::fmt::{Display, Formatter};
-use w_parse::expr::path::Path;
 use w_parse::item::named::NamedKind;
 use w_parse::item::Item;
 use w_parse::types::ItemTy;
 use w_parse::Module;
-use crate::data::err::{AnalyzerError, ErrKind};
+use crate::data::err::UnresolvedTypeError;
 
-pub fn run_pass1<'a>(module: &Module<'a>, tsys: &SimpleTypeSystem<'a, '_>, collector: &ErrorCollector<'a>) -> Vec<Path<'a>> {
+pub fn run_pass1<'a>(module: &Module<'a>, tsys: &SimpleTypeSystem<'a, '_>, errs: &ErrorCollector<'a>) {
     let mut progress = true;
     while progress {
         progress = false;
@@ -82,6 +80,5 @@ pub fn run_pass1<'a>(module: &Module<'a>, tsys: &SimpleTypeSystem<'a, '_>, colle
         .borrow()
         .iter()
         .filter(|(_, v)| v.definition.borrow().is_none())
-        .map(|(k, _)| k.clone())
-        .collect()
+        .for_each(|(_, v)| errs.add_error(UnresolvedTypeError(v.loc.clone())))
 }
