@@ -1,7 +1,7 @@
 // This pass builds the basic type and function system
 
-pub mod types;
 pub mod err;
+pub mod types;
 
 use crate::data::types::TypeRef;
 use std::cell::RefCell;

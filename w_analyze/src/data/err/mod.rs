@@ -1,8 +1,8 @@
-mod unresolved_type;
 mod fmt;
+mod unresolved_type;
 
-use std::cell::RefCell;
 use crate::data::err::fmt::ErrorFormatter;
+use std::cell::RefCell;
 
 pub use unresolved_type::UnresolvedTypeError;
 

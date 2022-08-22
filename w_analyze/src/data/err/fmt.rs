@@ -1,10 +1,8 @@
-use w_tokenize::Span;
-use crate::data::err::ErrKind;
 use crate::data::err::fmt::builder::StepDesc;
+use crate::data::err::ErrKind;
+use w_tokenize::Span;
 
-pub struct ErrorFormatter {
-
-}
+pub struct ErrorFormatter {}
 
 pub struct Error<'a> {
     kind: ErrKind,
@@ -35,7 +33,7 @@ impl<'a, 'b> ErrorBuilder<'a, 'b> {
             description: None,
             location: None,
             help: vec![],
-            notes: vec![]
+            notes: vec![],
         }
     }
 }
@@ -73,7 +71,7 @@ impl ErrorFormatter {
             description: None,
             location: None,
             help: vec![],
-            notes: vec![]
+            notes: vec![],
         })
     }
 
@@ -84,7 +82,7 @@ impl ErrorFormatter {
             description: None,
             location: None,
             help: vec![],
-            notes: vec![]
+            notes: vec![],
         })
     }
 
@@ -94,7 +92,7 @@ impl ErrorFormatter {
 }
 
 mod builder {
-    use super::{ErrorFormatter, ErrorBuilder, Error};
+    use super::{Error, ErrorBuilder, ErrorFormatter};
     use w_tokenize::Span;
 
     define_builder_steps! {

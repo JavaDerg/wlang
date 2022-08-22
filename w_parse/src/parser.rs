@@ -31,7 +31,7 @@ impl<'a> TokenSpan<'a> {
                 let last = &self.tokens[self.local.end];
                 let offset = last.span.location_offset() + last.span.len();
                 self.file.slice(offset..)
-            },
+            }
             1 => self.tokens[self.local.start].span,
             _ => {
                 let start = self.tokens[self.local.start].span;
@@ -41,7 +41,7 @@ impl<'a> TokenSpan<'a> {
                 let eo = end.location_offset() + end.len();
 
                 self.file.slice(so..eo)
-            },
+            }
         }
     }
 }

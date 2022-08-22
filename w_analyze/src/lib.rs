@@ -1,9 +1,9 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+use crate::data::err::ErrorCollector;
 use crate::data::SimpleTypeSystem;
 use typed_arena::Arena;
 use w_parse::Module;
-use crate::data::err::ErrorCollector;
 
 mod data;
 mod pass1;
