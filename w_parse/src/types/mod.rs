@@ -11,7 +11,7 @@ use crate::{ParResult, TokenSpan};
 use nom::branch::alt;
 use nom::combinator::map;
 
-use crate::expr::path::{parse_path, Path};
+use crate::expr::path::{parse_path, ExprPath};
 use crate::types::array::{parse_ty_array, TyArray};
 use crate::types::func::{parse_ty_func, TyFunc};
 use crate::types::never::{parse_ty_never, TyNever};
@@ -22,7 +22,7 @@ use crate::types::tuple::{parse_ty_tuple, TyTuple};
 
 #[derive(Debug, Clone)]
 pub enum ItemTy<'a> {
-    Named(Path<'a>),
+    Named(ExprPath<'a>),
     Struct(TyStruct<'a>),
     Enum(TyEnum<'a>),
     Tuple(TyTuple<'a>),

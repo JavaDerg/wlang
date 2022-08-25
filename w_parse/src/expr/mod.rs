@@ -2,7 +2,7 @@ use crate::expr::call::{parse_call_wrapper, ExprCall};
 use crate::expr::field::{parse_field_wrapper, ExprField};
 use crate::expr::index::{parse_index_wrapper, ExprIndex};
 use crate::expr::many::{parse_array, parse_tuple, ExprArray, ExprTuple};
-use crate::expr::path::{parse_path, Path};
+use crate::expr::path::{parse_path, ExprPath};
 use crate::expr::unary::{parse_unary, ExprUnary};
 use crate::{parse_name, ErrorChain, Ident, ParResult, TokenSpan};
 
@@ -69,7 +69,7 @@ pub enum Expr<'a> {
     Tuple(ExprTuple<'a>),
     Array(ExprArray<'a>),
 
-    Path(Path<'a>),
+    Path(ExprPath<'a>),
     Ctor(ExprCtor<'a>),
 
     Block(ExprBlock<'a>),

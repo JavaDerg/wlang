@@ -1,15 +1,13 @@
 use crate::data::Location;
 use std::cell::RefCell;
-use w_parse::types::array::TyArray;
-use w_parse::types::func::TyFunc;
-use w_parse::types::never::TyNever;
-use w_parse::types::ptr::TyPtr;
-use w_parse::types::r#enum::TyEnum;
 use w_parse::types::r#struct::TyStruct;
-use w_parse::types::tuple::TyTuple;
+use w_tokenize::Span;
+
+use w_parse::expr::Expr;
+use w_parse::Ident;
 
 pub struct TypeRef<'a, 'gc> {
-    pub loc: Location<'a>,
+    pub loc: Option<Location<'a, 'gc>>,
     pub definition: RefCell<Option<TypeInfo<'a, 'gc>>>,
 }
 
@@ -19,11 +17,46 @@ pub struct TypeInfo<'a, 'gc> {
 
 pub enum TypeKind<'a, 'gc> {
     Nested(&'gc TypeRef<'a, 'gc>),
-    Array(TyArray<'a>),
-    Enum(TyEnum<'a>),
-    Func(TyFunc<'a>),
-    Never(TyNever<'a>),
-    Ptr(TyPtr<'a>),
+    Import(&'gc TypeRef<'a, 'gc>),
+    Array(TypeArray<'a, 'gc>),
+    Enum(TypeEnum<'a, 'gc>),
+    Func(TypeFunc<'a, 'gc>),
+    Never(TypeNever<'a>),
+    Ptr(TypePtr<'a, 'gc>),
     Struct(TyStruct<'a>),
-    Tuple(TyTuple<'a>),
+    Tuple(TypeTuple<'a, 'gc>),
 }
+
+pub struct TypeArray<'a, 'gc> {
+    pub def: Span<'a>,
+    pub ty: &'gc TypeRef<'a, 'gc>,
+    pub len: Expr<'a>,
+}
+
+pub struct TypeEnum<'a, 'gc> {
+    pub def: Span<'a>,
+    pub variants: Vec<TypeTuple<'a, 'gc>>,
+}
+
+pub struct TypeFunc<'a, 'gc> {
+    pub def: Span<'a>,
+    pub args: Vec<&'gc TypeRef<'a, 'gc>>,
+    pub ret: &'gc TypeRef<'a, 'gc>,
+}
+
+pub struct TypePtr<'a, 'gc> {
+    pub def: Span<'a>,
+    pub ty: &'gc TypeRef<'a, 'gc>,
+}
+
+pub struct TypeStruct<'a, 'gc> {
+    pub def: Span<'a>,
+    pub fields: Vec<(Ident<'a>, &'gc TypeRef<'a, 'gc>)>,
+}
+
+pub struct TypeTuple<'a, 'gc> {
+    pub def: Span<'a>,
+    pub fields: Vec<&'gc TypeRef<'a, 'gc>>,
+}
+
+pub struct TypeNever<'a>(pub Span<'a>);

@@ -1,10 +1,10 @@
 use crate::expr::many::{parse_object, ExprObject};
-use crate::expr::path::{parse_path, Path};
+use crate::expr::path::{parse_path, ExprPath};
 use crate::{ParResult, TokenSpan};
 
 #[derive(Debug, Clone)]
 pub struct ExprCtor<'a> {
-    pub ty_path: Path<'a>,
+    pub ty_path: ExprPath<'a>,
     pub vals: ExprObject<'a>,
 }
 

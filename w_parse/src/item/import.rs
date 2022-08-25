@@ -1,5 +1,5 @@
 use crate::expr::parse_many0;
-use crate::expr::path::{parse_path, Path};
+use crate::expr::path::{parse_path, ExprPath};
 use crate::{tag, ParResult, TokenSpan, Weak};
 use nom::branch::alt;
 use nom::combinator::{all_consuming, map};
@@ -9,14 +9,14 @@ use w_tokenize::Kind;
 
 #[derive(Debug, Clone)]
 pub enum Imports<'a> {
-    Single(Path<'a>),
-    Multiple(Path<'a>, Vec<Imports<'a>>),
+    Single(ExprPath<'a>),
+    Multiple(ExprPath<'a>, Vec<Imports<'a>>),
 }
 
 #[derive(Debug, Clone)]
 pub struct ItemImports<'a> {
     pub imports: Vec<Imports<'a>>,
-    pub from: Path<'a>,
+    pub from: ExprPath<'a>,
 }
 
 pub fn parse_item_import(i: TokenSpan) -> ParResult<ItemImports> {
@@ -24,10 +24,7 @@ pub fn parse_item_import(i: TokenSpan) -> ParResult<ItemImports> {
     let (i, _) = Weak(Kind::DoubleCol).parse(i)?;
     let (i, from) = parse_path(i)?;
 
-    Ok((i, ItemImports {
-        imports,
-        from
-    }))
+    Ok((i, ItemImports { imports, from }))
 }
 
 fn parse_imports(i: TokenSpan) -> ParResult<Vec<Imports>> {

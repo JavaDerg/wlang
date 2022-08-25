@@ -14,6 +14,7 @@ use crate::types::{parse_type, ItemTy};
 use nom::combinator::{map, verify};
 use nom::{Err, Parser};
 use std::borrow::Cow;
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use w_tokenize::{Kind, Span};
 
@@ -24,10 +25,6 @@ pub type SVec<T> = Rc<[T]>;
 
 #[derive(Debug, Clone)]
 pub struct Ident<'a>(pub Span<'a>);
-
-fn svconv<T>(v: Vec<T>) -> Rc<[T]> {
-    Rc::from(v.into_boxed_slice())
-}
 
 pub fn parse(i: TokenSpan) -> ParResult<()> {
     Ok((i, ()))
@@ -60,3 +57,16 @@ fn keyword_check(ident: &Ident) -> bool {
         "struct" | "enum" | "func" | "for" | "while" | "loop" | "if" | "else" | "mut" | "defer"
     )
 }
+
+impl<'a> Hash for Ident<'a> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        (*self.0).hash(state)
+    }
+}
+
+impl<'a> PartialEq for Ident<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        (*self.0) == (*other.0)
+    }
+}
+impl<'a> Eq for Ident<'a> {}
