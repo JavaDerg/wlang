@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 use std::mem::transmute;
-use std::ops::{Bound, Deref, Index, RangeBounds};
+use std::ops::{Bound, Deref, RangeBounds};
 use std::slice::Iter;
 use w_parse::Ident;
 

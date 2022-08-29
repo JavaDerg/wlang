@@ -2,7 +2,7 @@ use crate::expr::{parse_expression, Expr};
 use crate::{parse_type, tag, ItemTy, ParResult, TokenSpan};
 use nom::combinator::{all_consuming, map, opt};
 use nom::{Offset, Slice};
-use w_tokenize::{Number, Span};
+use w_tokenize::Span;
 
 #[derive(Debug, Clone)]
 pub struct TyArray<'a> {

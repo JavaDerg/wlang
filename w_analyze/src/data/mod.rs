@@ -12,7 +12,7 @@ use either::Either;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use typed_arena::Arena;
-use w_parse::types::ItemTy;
+
 use w_parse::Ident;
 
 pub struct Module<'a, 'gc> {
@@ -40,7 +40,7 @@ pub struct Location<'a, 'gc> {
 impl<'a, 'gc> Module<'a, 'gc> {
     pub fn new(
         path: PathBuf<'a>,
-        owner: ModuleOwner,
+        _owner: ModuleOwner,
         modules: &'gc Arena<Self>,
         types: &'gc Arena<TypeRef<'a, 'gc>>,
     ) -> &'gc Self {

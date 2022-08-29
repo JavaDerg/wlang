@@ -54,7 +54,7 @@ pub fn run_pass1<'a, 'gc>(
             continue;
         }
 
-        let kind = build_type(&ty.ty, tsys, errs);
+        let _kind = build_type(&ty.ty, tsys, errs);
     }
 
     tsys.types
@@ -174,14 +174,14 @@ fn conv_tuple<'a, 'gc>(
 }
 
 fn import_imports<'a>(
-    module: &ParsedModule<'a>,
-    tsys: &Module<'a, '_>,
-    errs: &ErrorCollector<'a>,
+    _module: &ParsedModule<'a>,
+    _tsys: &Module<'a, '_>,
+    _errs: &ErrorCollector<'a>,
     imports: &ItemImports<'a>,
 ) -> bool {
     for import in &imports.imports {
         match import {
-            Imports::Single(direct) => {}
+            Imports::Single(_direct) => {}
             Imports::Multiple(_, _) => {}
         }
     }

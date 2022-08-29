@@ -1,6 +1,6 @@
 use crate::data::err::fmt::ErrorFormatter;
 use crate::data::err::{AnalyzerError, ErrKind};
-use crate::data::Location;
+
 use w_parse::Ident;
 
 pub struct UnresolvedTypeError<'a>(pub Ident<'a>);

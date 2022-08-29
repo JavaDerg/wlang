@@ -1,6 +1,6 @@
 use crate::data::Location;
 use std::cell::RefCell;
-use w_parse::types::r#struct::TyStruct;
+
 use w_tokenize::Span;
 
 use w_parse::expr::Expr;

@@ -1,5 +1,5 @@
 use crate::expr::block::{parse_block, ExprBlock};
-use crate::types::func::{parse_ty_func, parse_ty_named_func, TyFunc, TyNamedFunc};
+use crate::types::func::{parse_ty_named_func, TyNamedFunc};
 use crate::{ParResult, TokenSpan};
 
 #[derive(Debug, Clone)]
