@@ -21,6 +21,7 @@ pub struct ErrorBuilder<'a, 'b> {
     description: Option<String>,
     location: Option<Span<'a>>,
 
+    elaborations: Vec<Error<'a>>,
     help: Vec<Error<'a>>,
     notes: Vec<String>,
 }
@@ -32,6 +33,7 @@ impl<'a, 'b> ErrorBuilder<'a, 'b> {
             kind: self.kind,
             description: None,
             location: None,
+            elaborations: vec![],
             help: vec![],
             notes: vec![],
         }
@@ -70,6 +72,7 @@ impl ErrorFormatter {
             kind: ErrKind::Error,
             description: None,
             location: None,
+            elaborations: vec![],
             help: vec![],
             notes: vec![],
         })
@@ -81,6 +84,7 @@ impl ErrorFormatter {
             kind: ErrKind::Warning,
             description: None,
             location: None,
+            elaborations: vec![],
             help: vec![],
             notes: vec![],
         })
@@ -122,26 +126,33 @@ mod builder {
                 fmt.submit(err);
                 fmt
             }
+            fn add_elaboration(self) -> StepHelpDesc<'a, 'b> {
+                let help = self.0.derive_new();
+                StepHelpDesc(self.0, help, false)
+            }
             fn add_help(self) -> StepHelpDesc<'a, 'b> {
                 let help = self.0.derive_new();
-                StepHelpDesc(self.0, help)
+                StepHelpDesc(self.0, help, true)
             }
             fn add_note(mut self, note: impl Into<String>) -> Self {
                 self.0.notes.push(note.into());
                 self
             }
         },
-        StepHelpDesc (0, ErrorBuilder<'a, 'b>) => { fn description(mut self, text: impl Into<String>) -> StepHelpLoc<'a, 'b> {
+        StepHelpDesc (0, ErrorBuilder<'a, 'b>, bool) => { fn description(mut self, text: impl Into<String>) -> StepHelpLoc<'a, 'b> {
             self.1.description = Some(text.into());
-            StepHelpLoc(self.0, self.1)
+            StepHelpLoc(self.0, self.1, self.2)
         } },
-        StepHelpLoc (0, ErrorBuilder<'a, 'b>) => { fn location(mut self, loc: impl Into<Span<'a>>) -> StepHelpDone<'a, 'b> {
+        StepHelpLoc (0, ErrorBuilder<'a, 'b>, bool) => { fn location(mut self, loc: impl Into<Span<'a>>) -> StepHelpDone<'a, 'b> {
             self.1.location = Some(loc.into());
-            StepHelpDone(self.0, self.1)
+            StepHelpDone(self.0, self.1, self.2)
         } },
-        StepHelpDone (0, ErrorBuilder<'a, 'b>) => {
+        StepHelpDone (0, ErrorBuilder<'a, 'b>, bool) => {
             fn build_help(mut self) -> StepDone<'a, 'b> {
-                self.0.help.push(StepDone(self.1).build());
+                (match self.2 {
+                    true => &mut self.0.help,
+                    false => &mut self.0.elaborations,
+                }).push(StepDone(self.1).build());
                 StepDone(self.0)
             }
             fn add_note(mut self, note: impl Into<String>) -> Self {

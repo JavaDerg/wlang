@@ -1,10 +1,12 @@
 mod fmt;
+mod multiple_definitions;
 mod unresolved_type;
 
 use crate::data::err::fmt::ErrorFormatter;
 use std::cell::RefCell;
 
-pub use unresolved_type::UnresolvedTypeError;
+pub use multiple_definitions::*;
+pub use unresolved_type::*;
 
 #[derive(Default)]
 pub struct ErrorCollector<'a> {

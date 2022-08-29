@@ -61,6 +61,12 @@ impl<'a> Path<'a> {
     }
 }
 
+impl<'a, V: Into<Vec<Ident<'a>>>> From<V> for PathBuf<'a> {
+    fn from(vec: V) -> Self {
+        Self { path: vec.into() }
+    }
+}
+
 impl<'a> Deref for PathBuf<'a> {
     type Target = Path<'a>;
 

@@ -16,26 +16,26 @@ pub struct TypeInfo<'a, 'gc> {
 }
 
 pub enum TypeKind<'a, 'gc> {
-    Nested(&'gc TypeRef<'a, 'gc>),
+    Named(&'gc TypeRef<'a, 'gc>),
     Import(&'gc TypeRef<'a, 'gc>),
     Array(TypeArray<'a, 'gc>),
     Enum(TypeEnum<'a, 'gc>),
     Func(TypeFunc<'a, 'gc>),
     Never(TypeNever<'a>),
     Ptr(TypePtr<'a, 'gc>),
-    Struct(TyStruct<'a>),
+    Struct(TypeStruct<'a, 'gc>),
     Tuple(TypeTuple<'a, 'gc>),
 }
 
 pub struct TypeArray<'a, 'gc> {
     pub def: Span<'a>,
     pub ty: &'gc TypeRef<'a, 'gc>,
-    pub len: Expr<'a>,
+    pub len: Option<Expr<'a>>,
 }
 
 pub struct TypeEnum<'a, 'gc> {
     pub def: Span<'a>,
-    pub variants: Vec<TypeTuple<'a, 'gc>>,
+    pub variants: Vec<(Ident<'a>, Option<TypeTuple<'a, 'gc>>)>,
 }
 
 pub struct TypeFunc<'a, 'gc> {
