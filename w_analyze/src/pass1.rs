@@ -181,7 +181,7 @@ fn import_imports<'a>(
 ) -> bool {
     for import in &imports.imports {
         match import {
-            Imports::Single(_direct) => {}
+            Imports::Single(direct) => {}
             Imports::Multiple(_, _) => {}
         }
     }

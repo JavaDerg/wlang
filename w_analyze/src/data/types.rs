@@ -1,4 +1,5 @@
 use crate::data::Location;
+use either::Either;
 use std::cell::RefCell;
 
 use w_tokenize::Span;
@@ -16,7 +17,7 @@ pub struct TypeInfo<'a, 'gc> {
 }
 
 pub enum TypeKind<'a, 'gc> {
-    Named(&'gc TypeRef<'a, 'gc>),
+    Named(Either<&'gc TypeRef<'a, 'gc>, Box<TypeKind<'a, 'gc>>>),
     Import(&'gc TypeRef<'a, 'gc>),
     Array(TypeArray<'a, 'gc>),
     Enum(TypeEnum<'a, 'gc>),

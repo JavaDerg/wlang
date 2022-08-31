@@ -3,6 +3,7 @@
 pub mod err;
 pub mod file;
 pub mod path;
+mod typemap;
 pub mod types;
 
 use crate::data::file::FileRef;
