@@ -3,9 +3,10 @@ use crate::data::types::{
     TypeArray, TypeEnum, TypeFunc, TypeInfo, TypeKind, TypeNever, TypePtr, TypeRef, TypeStruct,
     TypeTuple,
 };
+use crate::data::Origin;
 use crate::{ErrorCollector, Module, PathBuf};
 use std::cell::RefCell;
-use w_parse::expr::path::ExprPath;
+use w_parse::expr::path::{parse_path, ExprPath};
 use w_parse::item::import::{Imports, ItemImports};
 use w_parse::item::named::NamedKind;
 use w_parse::item::Item;
@@ -25,12 +26,24 @@ pub fn run_pass1<'a, 'gc>(
     tsys: &'gc Module<'a, 'gc>,
     errs: &ErrorCollector<'a>,
 ) {
+    // Imports
+    for item in module.items.iter() {
+        let def = match item {
+            Item::Import(def) => def,
+            Item::Definer(_) => continue,
+        };
+
+        let (root, base) = conv_path(tsys, &def.from);
+        let root = root.access_or_create_module(&base);
+
+        resolve_imports(&def.imports, root, tsys, errs);
+    }
+
+    // Type definitions
     for item in module.items.iter() {
         let def = match item {
             Item::Definer(def) => def,
-            Item::Import(_imports) => {
-                continue;
-            }
+            Item::Import(_) => continue,
         };
 
         let ty = match &def.kind {
@@ -38,7 +51,17 @@ pub fn run_pass1<'a, 'gc>(
             NamedKind::Func(_) => continue,
         };
 
-        let tref = tsys.access_or_create_type(&PathBuf::from([def.name.clone()]));
+        let tref = match tsys.access_or_create_type(&PathBuf::from([def.name.clone()])) {
+            Origin::Local(tref) => tref,
+            Origin::Import(imp) => {
+                errs.add_error(MultipleDefinitionsError {
+                    loc: def.name.clone(),
+                    first: imp.loc.as_ref().unwrap().name.clone(),
+                    kind: DefinitionKind::Import,
+                });
+                continue;
+            }
+        };
 
         if tref.definition.borrow().is_some() {
             errs.add_error(MultipleDefinitionsError {
@@ -54,7 +77,11 @@ pub fn run_pass1<'a, 'gc>(
             continue;
         }
 
-        let _kind = build_type(&ty.ty, tsys, errs);
+        let kind = resolve_type(&ty.ty, tsys, errs);
+
+        *tref.definition.borrow_mut() = Some(TypeInfo {
+            kind: TypeKind::Named(kind),
+        });
     }
 
     tsys.types
@@ -66,15 +93,42 @@ pub fn run_pass1<'a, 'gc>(
         })
 }
 
+fn resolve_imports<'a, 'gc>(
+    imps: &[Imports<'a>],
+    root: &'gc Module<'a, 'gc>,
+    tsys: &'gc Module<'a, 'gc>,
+    errs: &ErrorCollector<'a>,
+) {
+    for imp in imps {
+        match imp {
+            Imports::Single(single) => {
+                // import paths can not be absolute
+                let (_, path) = conv_path(tsys, single);
+
+                let name = path.last().expect("imported paths may not be empty");
+                let path = path.slice(0..path.len() - 1);
+
+                let md = root.access_or_create_module(path);
+                tsys.imports.borrow_mut().insert(name.clone(), md);
+            }
+            Imports::Multiple(offset, imps) => {
+                let (_, path) = conv_path(tsys, offset);
+                let rel_root = root.access_or_create_module(&path);
+                resolve_imports(imps, rel_root, tsys, errs);
+            }
+        }
+    }
+}
+
 fn resolve_type<'a, 'gc>(
     ty: &ItemTy<'a>,
     tsys: &'gc Module<'a, 'gc>,
     errs: &ErrorCollector<'a>,
 ) -> &'gc TypeRef<'a, 'gc> {
     match ty {
-        ItemTy::Named(name) => {
+        ItemTy::Referred(name) => {
             let (md, path) = conv_path(tsys, name);
-            md.access_or_create_type(&path)
+            md.access_or_create_type(&path).unwrap()
         }
         _ => {
             let ty = build_type(ty, tsys, errs);
@@ -93,34 +147,20 @@ fn build_type<'a, 'gc>(
     errs: &ErrorCollector<'a>,
 ) -> TypeKind<'a, 'gc> {
     match ty {
-        ItemTy::Named(_) => panic!("Named type not expected"),
+        ItemTy::Referred(reference) => {
+            let (root, path) = conv_path(tsys, reference);
+            TypeKind::Referred(root.access_or_create_type(&path).unwrap())
+        }
         ItemTy::Struct(TyStruct {
             span_struct,
             fields,
-        }) => {
-            TypeKind::Struct(TypeStruct {
-                def: *span_struct,
-                fields: fields
-                    .iter()
-                    .map(|NameTyPair { name, ty }| {
-                        match ty {
-                            ItemTy::Named(path) => {
-                                let (md, path) = conv_path(tsys, path);
-                                (name.clone(), md.access_or_create_type(&path))
-                            }
-                            // anonymous type
-                            _ => {
-                                let tref = tsys.create_anonymous_type();
-                                *tref.definition.borrow_mut() = Some(TypeInfo {
-                                    kind: build_type(ty, tsys, errs),
-                                });
-                                (name.clone(), tref)
-                            }
-                        }
-                    })
-                    .collect(),
-            })
-        }
+        }) => TypeKind::Struct(TypeStruct {
+            def: *span_struct,
+            fields: fields
+                .iter()
+                .map(|NameTyPair { name, ty }| (name.clone(), resolve_type(ty, tsys, errs)))
+                .collect(),
+        }),
         ItemTy::Enum(TyEnum {
             span_enum,
             variants,
@@ -171,22 +211,6 @@ fn conv_tuple<'a, 'gc>(
             .map(|ty| resolve_type(ty, tsys, errs))
             .collect(),
     }
-}
-
-fn import_imports<'a>(
-    _module: &ParsedModule<'a>,
-    _tsys: &Module<'a, '_>,
-    _errs: &ErrorCollector<'a>,
-    imports: &ItemImports<'a>,
-) -> bool {
-    for import in &imports.imports {
-        match import {
-            Imports::Single(direct) => {}
-            Imports::Multiple(_, _) => {}
-        }
-    }
-
-    todo!()
 }
 
 fn conv_path<'a, 'gc>(

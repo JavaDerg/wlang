@@ -39,7 +39,7 @@ pub fn parse_type_definer(i: TokenSpan) -> ParResult<ItemNamedType> {
     let (i, ty) = parse_type(i)?;
 
     let terminated = match &ty {
-        ItemTy::Named(_) => true,
+        ItemTy::Referred(_) => true,
         ItemTy::Struct(_) => false,
         ItemTy::Enum(_) => false,
         ItemTy::Tuple(_) => true,

@@ -23,6 +23,9 @@ pub struct Module<'a, 'gc> {
     pub types: RefCell<HashMap<Ident<'a>, &'gc TypeRef<'a, 'gc>>>,
     pub modules: RefCell<HashMap<Ident<'a>, &'gc Self>>,
 
+    // the module is where the item is from and not the item it self
+    pub imports: RefCell<HashMap<Ident<'a>, &'gc Self>>,
+
     pub previous: Option<&'gc Self>,
 
     pub path: PathBuf<'a>,
@@ -38,6 +41,11 @@ pub struct Location<'a, 'gc> {
     pub home: &'gc Module<'a, 'gc>,
 }
 
+pub enum Origin<'a, 'gc> {
+    Local(&'gc TypeRef<'a, 'gc>),
+    Import(&'gc TypeRef<'a, 'gc>),
+}
+
 impl<'a, 'gc> Module<'a, 'gc> {
     pub fn new(
         path: PathBuf<'a>,
@@ -50,6 +58,7 @@ impl<'a, 'gc> Module<'a, 'gc> {
             modules_arena: modules,
             types: RefCell::new(HashMap::new()),
             modules: RefCell::new(HashMap::new()),
+            imports: RefCell::new(HashMap::new()),
             previous: None,
             path,
             owner: None,
@@ -71,29 +80,45 @@ impl<'a, 'gc> Module<'a, 'gc> {
         })
     }
 
-    pub fn access_or_create_type(&'gc self, path: &Path<'a>) -> &'gc TypeRef<'a, 'gc> {
+    pub fn access_or_create_type(&'gc self, path: &Path<'a>) -> Origin<'a, 'gc> {
         if path.is_empty() {
             panic!("empty path provided");
         }
         let name = path.last().unwrap().clone();
 
+        if path.len() == 1 {
+            if let Some(imp_md) = self.imports.borrow().get(&name) {
+                return Origin::Import(imp_md.access_or_create_type(path).unwrap());
+            }
+        }
+
+        if let Some(imp_md) = self.imports.borrow().get(path.first().unwrap()) {
+            return Origin::Import(imp_md.access_or_create_type(path).unwrap());
+        }
+
         let md_path = path.slice(..path.len() - 1);
         let md = self.access_or_create_module(md_path);
 
-        *md.types
-            .borrow_mut()
-            .entry(name.clone())
-            .or_insert_with(|| {
-                &*self.types_arena.alloc(TypeRef {
-                    loc: Some(Location { name, home: md }),
-                    definition: RefCell::new(None),
-                })
-            })
+        Origin::Local(
+            *md.types
+                .borrow_mut()
+                .entry(name.clone())
+                .or_insert_with(|| {
+                    &*self.types_arena.alloc(TypeRef {
+                        loc: Some(Location { name, home: md }),
+                        definition: RefCell::new(None),
+                    })
+                }),
+        )
     }
 
     pub fn access_or_create_module(&'gc self, path: &Path<'a>) -> &'gc Module<'a, 'gc> {
         if path.is_empty() {
             return self;
+        }
+
+        if let Some(imp_md) = self.imports.borrow().get(path.first().unwrap()) {
+            return imp_md.access_or_create_module(path);
         }
 
         let next = path.first().unwrap();
@@ -111,5 +136,14 @@ impl<'a, 'gc> Module<'a, 'gc> {
             });
 
         next.access_or_create_module(path.slice(1..))
+    }
+}
+
+impl<'a, 'gc> Origin<'a, 'gc> {
+    pub fn unwrap(&self) -> &'gc TypeRef<'a, 'gc> {
+        match self {
+            Origin::Local(t) => t,
+            Origin::Import(t) => t,
+        }
     }
 }

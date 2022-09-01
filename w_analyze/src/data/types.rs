@@ -17,7 +17,8 @@ pub struct TypeInfo<'a, 'gc> {
 }
 
 pub enum TypeKind<'a, 'gc> {
-    Named(Either<&'gc TypeRef<'a, 'gc>, Box<TypeKind<'a, 'gc>>>),
+    Named(&'gc TypeRef<'a, 'gc>),
+    Referred(&'gc TypeRef<'a, 'gc>),
     Import(&'gc TypeRef<'a, 'gc>),
     Array(TypeArray<'a, 'gc>),
     Enum(TypeEnum<'a, 'gc>),

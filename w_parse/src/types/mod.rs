@@ -22,7 +22,7 @@ use crate::types::tuple::{parse_ty_tuple, TyTuple};
 
 #[derive(Debug, Clone)]
 pub enum ItemTy<'a> {
-    Named(ExprPath<'a>),
+    Referred(ExprPath<'a>),
     Struct(TyStruct<'a>),
     Enum(TyEnum<'a>),
     Tuple(TyTuple<'a>),
@@ -34,7 +34,7 @@ pub enum ItemTy<'a> {
 
 pub fn parse_type(i: TokenSpan) -> ParResult<ItemTy> {
     alt((
-        map(parse_path, ItemTy::Named),
+        map(parse_path, ItemTy::Referred),
         map(parse_ty_struct, ItemTy::Struct),
         map(parse_ty_enum, ItemTy::Enum),
         map(parse_ty_tuple, ItemTy::Tuple),
