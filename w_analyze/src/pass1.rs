@@ -130,6 +130,7 @@ fn resolve_type<'a, 'gc>(
             let (md, path) = conv_path(tsys, name);
             md.access_or_create_type(&path).unwrap()
         }
+        // FIXME: check for known anonymous types, idiot :)
         _ => {
             let ty = build_type(ty, tsys, errs);
             let tref = &*tsys.types_arena.alloc(TypeRef {
