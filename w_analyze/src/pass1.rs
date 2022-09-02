@@ -5,9 +5,10 @@ use crate::data::types::{
 };
 use crate::data::Origin;
 use crate::{ErrorCollector, Module, PathBuf};
+use std::borrow::Cow;
 use std::cell::RefCell;
-use w_parse::expr::path::{parse_path, ExprPath};
-use w_parse::item::import::{Imports, ItemImports};
+use w_parse::expr::path::ExprPath;
+use w_parse::item::import::Imports;
 use w_parse::item::named::NamedKind;
 use w_parse::item::Item;
 use w_parse::types::array::TyArray;
@@ -20,6 +21,7 @@ use w_parse::types::tuple::TyTuple;
 use w_parse::types::ItemTy;
 use w_parse::util::NameTyPair;
 use w_parse::ParsedModule;
+use w_tokenize::Number;
 
 pub fn run_pass1<'a, 'gc>(
     module: &ParsedModule<'a>,
@@ -190,7 +192,7 @@ fn build_type<'a, 'gc>(
         ItemTy::Array(TyArray { span, ty, size }) => TypeKind::Array(TypeArray {
             def: *span,
             ty: resolve_type(ty, tsys, errs),
-            len: size.clone(),
+            len: todo!(),
         }),
         ItemTy::Pointer(TyPtr { span_ptr, ty }) => TypeKind::Ptr(TypePtr {
             def: *span_ptr,
@@ -224,4 +226,36 @@ fn conv_path<'a, 'gc>(
         tsys
     };
     (md, PathBuf::from(path.path.as_slice()))
+}
+
+fn array_num_to_sized(num: &Number) -> Result<u64, Cow<'static, str>> {
+    if let Some(sign) = &num.sign {
+        if **sign != "+" {
+            return Err("Unsigned integers must be positive".into());
+        }
+    }
+    if let Some(suffix) = &num.suffix {
+        if **suffix != "usize" {
+            return Err("Only usize numbers are allowed as array size".into());
+        }
+    }
+
+    let base = num
+        .base
+        .as_ref()
+        .map(|span| match **span {
+            "0x" => 16,
+            "0o" => 8,
+            "0b" => 2,
+            _ => unreachable!("allowed bases exceeded"),
+        })
+        .unwrap_or(10);
+
+    let num = if num.number.find('_').is_some() {
+        Cow::Owned(num.number.replace('_', ""))
+    } else {
+        Cow::Borrowed(*num.number)
+    };
+
+    u64::from_str_radix(&num, base).map_err(|err| format!("Number out of scope: {err}").into())
 }

@@ -1,8 +1,8 @@
-use crate::expr::{parse_expression, Expr};
+use crate::expr::parse_expression;
 use crate::{parse_type, tag, Error, ErrorChain, ItemTy, ParResult, TokenSpan};
 use either::Either;
 use nom::branch::alt;
-use nom::combinator::{all_consuming, consumed, map, opt, recognize};
+use nom::combinator::{all_consuming, map, opt, recognize};
 use nom::{Offset, Slice};
 use w_tokenize::{Number, Span};
 

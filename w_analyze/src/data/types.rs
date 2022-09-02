@@ -1,10 +1,8 @@
 use crate::data::Location;
-use either::Either;
 use std::cell::RefCell;
 
-use w_tokenize::{Number, Span};
+use w_tokenize::Span;
 
-use w_parse::expr::Expr;
 use w_parse::Ident;
 
 pub struct TypeRef<'a, 'gc> {
@@ -32,7 +30,7 @@ pub enum TypeKind<'a, 'gc> {
 pub struct TypeArray<'a, 'gc> {
     pub def: Span<'a>,
     pub ty: &'gc TypeRef<'a, 'gc>,
-    pub len: Option<Number<'a>>,
+    pub len: Option<u64>,
 }
 
 pub struct TypeEnum<'a, 'gc> {

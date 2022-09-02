@@ -7,6 +7,7 @@ use nom::{Offset, Slice};
 
 #[derive(Debug, Clone)]
 pub struct Number<'a> {
+    pub sign: Option<Span<'a>>,
     pub number: Span<'a>,
     pub suffix: Option<Span<'a>>,
     pub base: Option<Span<'a>>,
@@ -17,7 +18,7 @@ pub fn parse_integer(i: Span) -> TokResult<(Span, Number)> {
 }
 
 fn parse_integer_inner(oi: Span) -> TokResult<(Span, Number)> {
-    let (i, _sign) = opt(is_a("+-"))(oi)?;
+    let (i, sign) = opt(is_a("+-"))(oi)?;
     let (i, base) = opt(parse_base)(i)?;
     let num_check = match &base {
         Some(span) if **span == "0x" => |c: char| c.is_ascii_hexdigit(),
@@ -43,6 +44,7 @@ fn parse_integer_inner(oi: Span) -> TokResult<(Span, Number)> {
                 number: num,
                 suffix,
                 base,
+                sign,
             },
         ),
     ))
