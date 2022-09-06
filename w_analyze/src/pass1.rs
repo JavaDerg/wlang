@@ -3,7 +3,7 @@ use crate::data::types::{
     TypeArray, TypeEnum, TypeFunc, TypeInfo, TypeKind, TypeNever, TypePtr, TypeRef, TypeStruct,
     TypeTuple,
 };
-use crate::data::Origin;
+use crate::data::TypeOrigin;
 use crate::{ErrorCollector, Module, PathBuf};
 use std::borrow::Cow;
 use std::cell::RefCell;
@@ -54,8 +54,8 @@ pub fn run_pass1<'a, 'gc>(
         };
 
         let tref = match tsys.access_or_create_type(&PathBuf::from([def.name.clone()])) {
-            Origin::Local(tref) => tref,
-            Origin::Import(imp) => {
+            TypeOrigin::Local(tref) => tref,
+            TypeOrigin::Import(imp) => {
                 errs.add_error(MultipleDefinitionsError {
                     loc: def.name.clone(),
                     first: imp.loc.as_ref().unwrap().name.clone(),

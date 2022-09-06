@@ -1,100 +1,109 @@
 use crate::data::types::{
-    TypeArray, TypeEnum, TypeFunc, TypeKind, TypePtr, TypeRef, TypeStruct, TypeTuple,
+    TypeArray, TypeEnum, TypeFunc, TypeInfo, TypeKind, TypePtr, TypeRef, TypeStruct, TypeTuple,
 };
 use crate::Module;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
+#[derive(Default)]
 pub struct AnonTypeMap<'a, 'gc> {
     map: HashMap<Wrapper<'a, 'gc>, &'gc TypeRef<'a, 'gc>>,
 }
 
 struct Wrapper<'a, 'gc> {
-    pub inner: &'gc TypeRef<'a, 'gc>,
+    pub inner: TypeKind<'a, 'gc>,
     pub owner: &'gc Module<'a, 'gc>,
+}
+
+impl<'a, 'gc> AnonTypeMap<'a, 'gc> {
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 impl<'a, 'gc> Hash for Wrapper<'a, 'gc> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let ty = self.inner.definition.borrow();
-        if let Some(ty) = &*ty {
-            match &ty.kind {
-                TypeKind::Named(tref) => Wrapper {
-                    inner: *tref,
+        match &self.inner {
+            TypeKind::Named(tref) => Wrapper {
+                inner: tref
+                    .definition
+                    .borrow()
+                    .expect("only defined types can be hashed")
+                    .kind
+                    .clone(),
+                owner: self.owner,
+            }
+            .hash(state),
+            TypeKind::Referred(tref) => Wrapper {
+                inner: *tref,
+                owner: self.owner,
+            }
+            .hash(state),
+            TypeKind::Import(tref) => Wrapper {
+                inner: *tref,
+                owner: self.owner,
+            }
+            .hash(state),
+            TypeKind::Array(TypeArray { ty, len, .. }) => {
+                Wrapper {
+                    inner: ty,
                     owner: self.owner,
                 }
-                .hash(state),
-                TypeKind::Referred(tref) => Wrapper {
-                    inner: *tref,
+                .hash(state);
+                len.hash(state);
+            }
+            TypeKind::Enum(TypeEnum { variants, .. }) => {
+                for (ident, tuple) in variants {
+                    (**ident.0).hash(state);
+                    if let Some(tuple) = tuple {
+                        for ty in &tuple.fields {
+                            Wrapper {
+                                inner: *ty,
+                                owner: self.owner,
+                            }
+                            .hash(state);
+                        }
+                    }
+                }
+            }
+            TypeKind::Func(TypeFunc { args, ret, .. }) => {
+                for ty in args {
+                    Wrapper {
+                        inner: *ty,
+                        owner: self.owner,
+                    }
+                    .hash(state);
+                }
+                Wrapper {
+                    inner: ret,
                     owner: self.owner,
                 }
-                .hash(state),
-                TypeKind::Import(tref) => Wrapper {
-                    inner: *tref,
-                    owner: self.owner,
-                }
-                .hash(state),
-                TypeKind::Array(TypeArray { ty, len, .. }) => {
+                .hash(state);
+            }
+            // Never is always the same
+            TypeKind::Never(_) => (),
+            TypeKind::Ptr(TypePtr { ty, .. }) => Wrapper {
+                inner: ty,
+                owner: self.owner,
+            }
+            .hash(state),
+            TypeKind::Struct(TypeStruct { fields, .. }) => {
+                for (ident, ty) in fields {
+                    (**ident.0).hash(state);
                     Wrapper {
                         inner: ty,
                         owner: self.owner,
                     }
                     .hash(state);
-                    len.hash(state);
                 }
-                TypeKind::Enum(TypeEnum { variants, .. }) => {
-                    for (ident, tuple) in variants {
-                        (**ident.0).hash(state);
-                        if let Some(tuple) = tuple {
-                            for ty in &tuple.fields {
-                                Wrapper {
-                                    inner: *ty,
-                                    owner: self.owner,
-                                }
-                                .hash(state);
-                            }
-                        }
-                    }
-                }
-                TypeKind::Func(TypeFunc { args, ret, .. }) => {
-                    for ty in args {
-                        Wrapper {
-                            inner: *ty,
-                            owner: self.owner,
-                        }
-                        .hash(state);
-                    }
+            }
+            TypeKind::Tuple(TypeTuple { fields, .. }) => {
+                for ty in fields {
                     Wrapper {
-                        inner: ret,
+                        inner: ty,
                         owner: self.owner,
                     }
                     .hash(state);
-                }
-                // Never is always the same
-                TypeKind::Never(_) => (),
-                TypeKind::Ptr(TypePtr { ty, .. }) => Wrapper {
-                    inner: ty,
-                    owner: self.owner,
-                }
-                .hash(state),
-                TypeKind::Struct(TypeStruct { fields, .. }) => {
-                    for (ident, ty) in fields {
-                        (**ident.0).hash(state);
-                        Wrapper {
-                            inner: ty,
-                            owner: self.owner,
-                        }
-                        .hash(state);
-                    }
-                }
-                TypeKind::Tuple(TypeTuple { fields, .. }) => {
-                    for ty in fields {
-                        Wrapper {
-                            inner: ty,
-                            owner: self.owner,
-                        }
-                        .hash(state);
-                    }
                 }
             }
         }

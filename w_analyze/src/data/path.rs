@@ -5,11 +5,12 @@ use std::slice::Iter;
 use w_parse::Ident;
 
 #[repr(transparent)]
+#[derive(Hash, PartialEq, Eq)]
 pub struct Path<'a> {
     path: [Ident<'a>],
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Hash, Eq, PartialEq)]
 pub struct PathBuf<'a> {
     path: Vec<Ident<'a>>,
 }

@@ -2,6 +2,7 @@
 
 pub mod err;
 pub mod file;
+pub mod md_raw;
 pub mod path;
 mod typemap;
 pub mod types;
@@ -10,8 +11,10 @@ use crate::data::file::FileRef;
 use crate::data::path::{Path, PathBuf};
 use crate::data::types::TypeRef;
 use either::Either;
+use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ops::Deref;
 use typed_arena::Arena;
 
 use w_parse::Ident;
@@ -29,6 +32,7 @@ pub struct Module<'a, 'gc> {
     pub previous: Option<&'gc Self>,
 
     pub path: PathBuf<'a>,
+    pub name: Option<Ident<'a>>,
 
     pub owner: ModuleOwner<'a, 'gc>,
 }
@@ -41,15 +45,17 @@ pub struct Location<'a, 'gc> {
     pub home: &'gc Module<'a, 'gc>,
 }
 
-pub enum Origin<'a, 'gc> {
-    Local(&'gc TypeRef<'a, 'gc>),
-    Import(&'gc TypeRef<'a, 'gc>),
+pub type TypeOrigin<'a, 'gc> = Origin<&'gc TypeRef<'a, 'gc>>;
+#[derive(Hash, PartialEq, Eq)]
+pub enum Origin<T> {
+    Local(T),
+    Import(T),
 }
 
 impl<'a, 'gc> Module<'a, 'gc> {
     pub fn new(
         path: PathBuf<'a>,
-        _owner: ModuleOwner,
+        owner: ModuleOwner,
         modules: &'gc Arena<Self>,
         types: &'gc Arena<TypeRef<'a, 'gc>>,
     ) -> &'gc Self {
@@ -61,6 +67,21 @@ impl<'a, 'gc> Module<'a, 'gc> {
             imports: RefCell::new(HashMap::new()),
             previous: None,
             path,
+            name: Some(path.last().expect("path must contain module name").clone()),
+            owner,
+        })
+    }
+
+    pub fn new_root(modules: &'gc Arena<Self>, types: &'gc Arena<TypeRef<'a, 'gc>>) -> &'gc Self {
+        modules.alloc(Module {
+            types_arena: types,
+            modules_arena: modules,
+            types: RefCell::new(HashMap::new()),
+            modules: RefCell::new(HashMap::new()),
+            imports: RefCell::new(HashMap::new()),
+            previous: None,
+            path: PathBuf::default(),
+            name: None,
             owner: None,
         })
     }
@@ -80,7 +101,7 @@ impl<'a, 'gc> Module<'a, 'gc> {
         })
     }
 
-    pub fn access_or_create_type(&'gc self, path: &Path<'a>) -> Origin<'a, 'gc> {
+    pub fn access_or_create_type(&'gc self, path: &Path<'a>) -> TypeOrigin<'a, 'gc> {
         if path.is_empty() {
             panic!("empty path provided");
         }
@@ -88,18 +109,18 @@ impl<'a, 'gc> Module<'a, 'gc> {
 
         if path.len() == 1 {
             if let Some(imp_md) = self.imports.borrow().get(&name) {
-                return Origin::Import(imp_md.access_or_create_type(path).unwrap());
+                return TypeOrigin::Import(imp_md.access_or_create_type(path).unwrap());
             }
         }
 
         if let Some(imp_md) = self.imports.borrow().get(path.first().unwrap()) {
-            return Origin::Import(imp_md.access_or_create_type(path).unwrap());
+            return TypeOrigin::Import(imp_md.access_or_create_type(path).unwrap());
         }
 
         let md_path = path.slice(..path.len() - 1);
         let md = self.access_or_create_module(md_path);
 
-        Origin::Local(
+        TypeOrigin::Local(
             *md.types
                 .borrow_mut()
                 .entry(name.clone())
@@ -139,11 +160,28 @@ impl<'a, 'gc> Module<'a, 'gc> {
     }
 }
 
-impl<'a, 'gc> Origin<'a, 'gc> {
-    pub fn unwrap(&self) -> &'gc TypeRef<'a, 'gc> {
+impl<T: Clone> Origin<T> {
+    pub fn unwrap(&self) -> T {
+        match self {
+            Origin::Local(t) => t.clone(),
+            Origin::Import(t) => t.clone(),
+        }
+    }
+}
+
+impl<T> Origin<T> {
+    pub fn unwrap_ref(&self) -> &T {
         match self {
             Origin::Local(t) => t,
             Origin::Import(t) => t,
         }
+    }
+}
+
+impl<T> Deref for Origin<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.unwrap_ref()
     }
 }

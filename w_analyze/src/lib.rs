@@ -3,8 +3,9 @@
 extern crate core;
 
 use crate::data::err::ErrorCollector;
+use crate::data::md_raw::RawModuleInfo;
 use crate::data::path::PathBuf;
-use crate::data::Module;
+use crate::data::{Module, Origin, TypeOrigin};
 use std::collections::HashMap;
 use typed_arena::Arena;
 use w_parse::{Ident, ParsedModule};
@@ -12,24 +13,32 @@ use w_parse::{Ident, ParsedModule};
 mod data;
 mod pass1;
 
-pub fn analyze<'a>(
-    _root: Ident<'a>,
-    modules: &HashMap<PathBuf<'a>, ParsedModule<'a>>,
+pub fn build_tsys<'a>(
+    root: Ident<'a>,
+    modules: &HashMap<PathBuf<'a>, RawModuleInfo<'a>>,
 ) -> Result<(), ErrorCollector<'a>> {
     let collector = ErrorCollector::default();
 
     let types_arena = Arena::new();
     let modules_arena = Arena::new();
-    // FIXME: Module owner needs to be set properly
-    let root_module = Module::new(PathBuf::default(), None, &modules_arena, &types_arena);
 
-    for (buf, md) in modules {
-        let target_md = root_module.access_or_create_module(buf);
-        pass1::run_pass1(md, target_md, &collector);
-    }
+    let root_module = Module::new_root(&modules_arena, &types_arena);
+
+    let target = modules.get(&PathBuf::from(vec![root])).unwrap();
+    build_tsys_recursive(target, &modules, &root_module, &collector, vec![]);
+
     if collector.has_errors() {
         return Err(collector);
     }
 
     todo!()
+}
+
+fn build_tsys_recursive<'a, 'gc>(
+    target: &RawModuleInfo<'a>,
+    modules: &HashMap<PathBuf<'a>, RawModuleInfo<'a>>,
+    root: &'gc Module<'a, 'gc>,
+    errs: &ErrorCollector<'a>,
+    recursion_fix: Vec<Ident<'a>>,
+) {
 }
