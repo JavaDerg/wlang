@@ -81,7 +81,7 @@ pub enum Expr<'a> {
     Define(ExprDefine<'a>),
     Assign(ExprAssignment<'a>),
 
-    Number(Number<'a>),
+    Number(Box<Number<'a>>),
     String(Span<'a>, String),
     Ident(Ident<'a>),
 

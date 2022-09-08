@@ -1,3 +1,4 @@
+mod array_fix;
 mod fmt;
 mod multiple_definitions;
 mod unresolved_type;
@@ -5,6 +6,7 @@ mod unresolved_type;
 use crate::data::err::fmt::ErrorFormatter;
 use std::cell::RefCell;
 
+pub use array_fix::*;
 pub use multiple_definitions::*;
 pub use unresolved_type::*;
 

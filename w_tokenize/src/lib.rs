@@ -135,7 +135,7 @@ pub enum Kind<'a> {
     Array(Rc<[Token<'a>]>),
 
     String(String),
-    Number(Number<'a>),
+    Number(Box<Number<'a>>),
 }
 
 pub fn tokenize(mut i: Span) -> TokResult<Vec<Token>> {
@@ -172,7 +172,7 @@ fn token(i: Span) -> TokResult<Option<Token>> {
         }),
         map(parse_integer, |(span, num)| Token {
             span,
-            kind: Kind::Number(num),
+            kind: Kind::Number(Box::new(num)),
         }),
         parse_block,
         parse_tuple,

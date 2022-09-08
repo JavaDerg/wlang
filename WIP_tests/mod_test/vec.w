@@ -23,7 +23,7 @@ vec(T):push :: func(self *vec(T), val T) {
 		// who needs stable references anyways lmao
 		self.buf = new;
 	}
-	
+
 	self.buf[self.used] = val;
 	self.used += 1;
 }

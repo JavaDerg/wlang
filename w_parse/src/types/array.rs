@@ -10,7 +10,7 @@ use w_tokenize::{Number, Span};
 pub struct TyArray<'a> {
     pub span: Span<'a>,
     pub ty: Box<ItemTy<'a>>,
-    pub size: Option<Number<'a>>,
+    pub size: Option<Box<Number<'a>>>,
 }
 
 pub fn parse_ty_array(oi: TokenSpan) -> ParResult<TyArray> {

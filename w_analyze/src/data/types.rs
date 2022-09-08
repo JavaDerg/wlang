@@ -1,24 +1,24 @@
-use crate::data::Location;
 use std::cell::RefCell;
 
 use w_tokenize::Span;
 
+use crate::data::Location;
 use w_parse::Ident;
 
 pub struct TypeRef<'a, 'gc> {
-    pub loc: Option<Location<'a, 'gc>>,
+    pub loc: Location<'a, 'gc>,
     pub definition: RefCell<Option<TypeInfo<'a, 'gc>>>,
 }
 
-pub struct TypeInfo<'a, 'gc> {
-    pub kind: TypeKind<'a, 'gc>,
+pub enum TypeInfo<'a, 'gc> {
+    Owned { kind: TypeKind<'a, 'gc> },
+    Proxy(&'gc TypeRef<'a, 'gc>),
 }
 
 #[derive(Clone)]
 pub enum TypeKind<'a, 'gc> {
-    Named(&'gc TypeRef<'a, 'gc>),
+    Named(Box<TypeKind<'a, 'gc>>),
     Referred(&'gc TypeRef<'a, 'gc>),
-    Import(&'gc TypeRef<'a, 'gc>),
     Array(TypeArray<'a, 'gc>),
     Enum(TypeEnum<'a, 'gc>),
     Func(TypeFunc<'a, 'gc>),
@@ -31,7 +31,7 @@ pub enum TypeKind<'a, 'gc> {
 #[derive(Clone)]
 pub struct TypeArray<'a, 'gc> {
     pub def: Span<'a>,
-    pub ty: &'gc TypeRef<'a, 'gc>,
+    pub ty: Box<TypeKind<'a, 'gc>>,
     pub len: Option<u64>,
 }
 
@@ -44,26 +44,26 @@ pub struct TypeEnum<'a, 'gc> {
 #[derive(Clone)]
 pub struct TypeFunc<'a, 'gc> {
     pub def: Span<'a>,
-    pub args: Vec<&'gc TypeRef<'a, 'gc>>,
-    pub ret: &'gc TypeRef<'a, 'gc>,
+    pub args: Vec<TypeKind<'a, 'gc>>,
+    pub ret: Box<TypeKind<'a, 'gc>>,
 }
 
 #[derive(Clone)]
 pub struct TypePtr<'a, 'gc> {
     pub def: Span<'a>,
-    pub ty: &'gc TypeRef<'a, 'gc>,
+    pub ty: Box<TypeKind<'a, 'gc>>,
 }
 
 #[derive(Clone)]
 pub struct TypeStruct<'a, 'gc> {
     pub def: Span<'a>,
-    pub fields: Vec<(Ident<'a>, &'gc TypeRef<'a, 'gc>)>,
+    pub fields: Vec<(Ident<'a>, TypeKind<'a, 'gc>)>,
 }
 
 #[derive(Clone)]
 pub struct TypeTuple<'a, 'gc> {
     pub def: Span<'a>,
-    pub fields: Vec<&'gc TypeRef<'a, 'gc>>,
+    pub fields: Vec<TypeKind<'a, 'gc>>,
 }
 
 #[derive(Clone)]
