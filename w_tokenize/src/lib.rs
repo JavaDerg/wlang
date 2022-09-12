@@ -27,7 +27,7 @@ pub use crate::number::Number;
 use crate::string::parse_string;
 use error::ToTokenError;
 
-pub type Span<'a> = nom_locate::LocatedSpan<&'a str>;
+pub type Span<'a> = nom_locate::LocatedSpan<&'a str, &'a str>;
 pub type TokResult<'a, R = Span<'a>> = IResult<Span<'a>, R, TokenError<'a>>;
 
 #[derive(Debug, Clone)]

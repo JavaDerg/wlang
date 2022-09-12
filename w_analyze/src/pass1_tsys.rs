@@ -2,7 +2,8 @@ use crate::data::err::{
     ArrayNumberFix, DefinitionKind, MultipleDefinitionsError, UnresolvedTypeError,
 };
 use crate::data::types::{
-    TypeArray, TypeEnum, TypeFunc, TypeInfo, TypeKind, TypeNever, TypePtr, TypeStruct, TypeTuple,
+    TypeArray, TypeEnum, TypeFunc, TypeInfo, TypeKind, TypeNever, TypePtr, TypeRef, TypeStruct,
+    TypeTuple,
 };
 use crate::{ErrorCollector, Module, PathBuf};
 use std::borrow::Cow;
@@ -69,11 +70,12 @@ pub fn run_pass1<'a, 'gc>(
         });
     }
 
-    tsys.types
-        .borrow()
-        .iter()
-        .filter(|(_, v)| v.definition.borrow().is_none())
-        .for_each(|(_, v)| errs.add_error(UnresolvedTypeError(v.loc.name.clone())))
+    undefined_type_check(tsys, errs);
+    if errs.has_errors() {
+        return;
+    }
+
+    rrc::recursive_reference_check(tsys, errs);
 }
 
 // fn resolve_imports<'a, 'gc>(
@@ -111,7 +113,7 @@ fn build_type<'a, 'gc>(
     match ty {
         ItemTy::Referred(reference) => {
             let (root, path) = conv_path(tsys, reference);
-            TypeKind::Referred(root.access_or_create_type(&path))
+            TypeKind::Referred(root.access_or_create_type(&path), path)
         }
         ItemTy::Struct(TyStruct {
             span_struct,
@@ -152,7 +154,7 @@ fn build_type<'a, 'gc>(
             def: *span,
             ty: Box::new(build_type(ty, tsys, errs)),
             len: if let Some(num) = size {
-                match array_num_to_sized(&*num) {
+                match array_num_to_sized(&**num) {
                     Ok(n) => Some(n),
                     Err(err) => {
                         errs.add_error(ArrayNumberFix {
@@ -171,6 +173,88 @@ fn build_type<'a, 'gc>(
             ty: Box::new(build_type(ty, tsys, errs)),
         }),
         ItemTy::Never(TyNever(span)) => TypeKind::Never(TypeNever(*span)),
+    }
+}
+
+fn undefined_type_check<'a, 'gc>(tsys: &'gc Module<'a, 'gc>, errs: &ErrorCollector<'a>) {
+    tsys.types
+        .borrow()
+        .iter()
+        .filter(|(_, v)| v.definition.borrow().is_none())
+        .for_each(|(_, v)| errs.add_error(UnresolvedTypeError(v.loc.name.clone())))
+}
+
+mod rrc {
+    use crate::data::err::RecursiveTypeError;
+    use crate::data::types::{
+        TypeArray, TypeEnum, TypeInfo, TypeKind, TypeRef, TypeStruct, TypeTuple,
+    };
+    use crate::{ErrorCollector, Module};
+    use std::ptr;
+    use w_parse::Ident;
+
+    pub fn recursive_reference_check<'a, 'gc>(
+        tsys: &'gc Module<'a, 'gc>,
+        errs: &ErrorCollector<'a>,
+    ) {
+        tsys.types.borrow().iter().for_each(|(id, ty)| {
+            rrc_investigate(ty, id.clone(), errs, &mut vec![]);
+        })
+    }
+
+    fn rrc_investigate<'a, 'gc>(
+        ty: &'gc TypeRef<'a, 'gc>,
+        loc: Ident<'a>,
+        errs: &ErrorCollector<'a>,
+        stack: &mut Vec<&'gc TypeRef<'a, 'gc>>,
+    ) {
+        stack.push(ty);
+        match ty.definition.borrow().as_ref().unwrap() {
+            TypeInfo::Owned { kind } => rrc_investigate_tk(kind, errs, stack),
+            TypeInfo::Proxy(ty) => {
+                if let Some(found) = stack.iter().find(|otr| ptr::eq(*otr, ty)) {
+                    errs.add_error(RecursiveTypeError {
+                        og: found.loc.name.clone(),
+                        usage: loc,
+                    })
+                }
+            }
+        }
+        stack.pop();
+    }
+
+    fn rrc_investigate_tk<'a, 'gc>(
+        ty: &TypeKind<'a, 'gc>,
+        errs: &ErrorCollector<'a>,
+        stack: &mut Vec<&'gc TypeRef<'a, 'gc>>,
+    ) {
+        match ty {
+            TypeKind::Named(kind) => rrc_investigate_tk(&*kind, errs, stack),
+            TypeKind::Referred(tr, path) => {
+                rrc_investigate(*tr, path.last().unwrap().clone(), errs, stack)
+            }
+            TypeKind::Array(TypeArray { ty, .. }) => rrc_investigate_tk(&*ty, errs, stack),
+            TypeKind::Enum(TypeEnum { variants, .. }) => variants
+                .iter()
+                .filter_map(|(_, v)| v.as_ref())
+                .for_each(|TypeTuple { fields, .. }| {
+                    fields
+                        .iter()
+                        .for_each(|ty| rrc_investigate_tk(ty, errs, stack))
+                }),
+            // function types refer to usage not definition
+            TypeKind::Func(_) => (),
+            // never has no inner types
+            TypeKind::Never(_) => (),
+            // pointer aren't containers, recursion is acceptable
+            TypeKind::Ptr(_) => (),
+            TypeKind::Struct(TypeStruct { fields, .. }) => fields
+                .iter()
+                .for_each(|(_, ty)| rrc_investigate_tk(ty, errs, stack)),
+            TypeKind::Tuple(TypeTuple { fields, .. }) => fields
+                .iter()
+                .for_each(|ty| rrc_investigate_tk(ty, errs, stack)),
+        }
     }
 }
 

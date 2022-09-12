@@ -44,6 +44,7 @@ pub struct Location<'a, 'gc> {
 }
 
 pub type TypeOrigin<'a, 'gc> = Origin<&'gc TypeRef<'a, 'gc>>;
+
 #[derive(Hash, PartialEq, Eq)]
 pub enum Origin<T> {
     Local(T),

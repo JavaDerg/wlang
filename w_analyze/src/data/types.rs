@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use w_tokenize::Span;
 
 use crate::data::Location;
+use crate::PathBuf;
 use w_parse::Ident;
 
 pub struct TypeRef<'a, 'gc> {
@@ -18,7 +19,7 @@ pub enum TypeInfo<'a, 'gc> {
 #[derive(Clone)]
 pub enum TypeKind<'a, 'gc> {
     Named(Box<TypeKind<'a, 'gc>>),
-    Referred(&'gc TypeRef<'a, 'gc>),
+    Referred(&'gc TypeRef<'a, 'gc>, PathBuf<'a>),
     Array(TypeArray<'a, 'gc>),
     Enum(TypeEnum<'a, 'gc>),
     Func(TypeFunc<'a, 'gc>),
