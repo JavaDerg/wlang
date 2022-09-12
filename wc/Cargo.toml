@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 w_tokenize = { path = "../w_tokenize" }
 w_parse = { path = "../w_parse" }
+ariadne = "0.1.5"

@@ -12,7 +12,7 @@ use w_parse::Ident;
 
 mod data;
 mod elided;
-mod pass1;
+mod pass1_tsys;
 
 pub fn build_tsys<'a>(
     root: Ident<'a>,
