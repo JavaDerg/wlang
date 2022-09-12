@@ -18,7 +18,6 @@ pub enum TypeInfo<'a, 'gc> {
 
 #[derive(Clone)]
 pub enum TypeKind<'a, 'gc> {
-    Named(Box<TypeKind<'a, 'gc>>),
     Referred(&'gc TypeRef<'a, 'gc>, PathBuf<'a>),
     Array(TypeArray<'a, 'gc>),
     Enum(TypeEnum<'a, 'gc>),

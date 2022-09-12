@@ -65,9 +65,7 @@ pub fn run_pass1<'a, 'gc>(
 
         let kind = build_type(&ty.ty, tsys, errs);
 
-        *tref.definition.borrow_mut() = Some(TypeInfo::Owned {
-            kind: TypeKind::Named(Box::new(kind)),
-        });
+        *tref.definition.borrow_mut() = Some(TypeInfo::Owned { kind });
     }
 
     undefined_type_check(tsys, errs);
@@ -229,7 +227,6 @@ mod rrc {
         stack: &mut Vec<&'gc TypeRef<'a, 'gc>>,
     ) {
         match ty {
-            TypeKind::Named(kind) => rrc_investigate_tk(&*kind, errs, stack),
             TypeKind::Referred(tr, path) => {
                 rrc_investigate(*tr, path.last().unwrap().clone(), errs, stack)
             }
