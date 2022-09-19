@@ -41,6 +41,9 @@ pub enum Kind<'a> {
     /// Regular identifier
     Ident,
 
+    /// `_`
+    Fill,
+
     /// `:`
     Colon,
     /// `::`
@@ -55,7 +58,6 @@ pub enum Kind<'a> {
     Comma,
     /// `;`
     Semicolon,
-
     /// `.`
     Dot,
 
@@ -131,7 +133,7 @@ pub enum Kind<'a> {
     Tuple(Rc<[Token<'a>]>),
     /// `{TOKENS}`
     Block(Rc<[Token<'a>]>),
-    /// `[TOKENS]
+    /// `[TOKENS]`
     Array(Rc<[Token<'a>]>),
 
     String(String),
@@ -182,6 +184,7 @@ fn token(i: Span) -> TokResult<Option<Token>> {
             kind: Kind::Ident,
         }),
         // assignment operators
+        op("_", "", || Kind::Fill),
         alt((
             op("<<=", "", || Kind::ShlAssign),
             op(">>=", "", || Kind::ShrAssign),
@@ -461,6 +464,7 @@ impl<'a> Kind<'a> {
             Kind::String(_) => 39,
             Kind::Number(_) => 40,
             Kind::Colon => 41,
+            Kind::Fill => 42,
         }
     }
 }

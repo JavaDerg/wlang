@@ -1,9 +1,12 @@
 use crate::{bounded, Span, TokResult};
 use nom::bytes::complete::{take_while, take_while1};
-use nom::combinator::recognize;
+use nom::combinator::{recognize, verify};
 
 pub fn parse_ident(i: Span) -> TokResult {
-    bounded(recognize(inner_span), char::is_alphanumeric)(i)
+    bounded(
+        verify(recognize(inner_span), |s| **s != "_"),
+        char::is_alphanumeric,
+    )(i)
 }
 
 fn inner_span(i: Span) -> TokResult<()> {
