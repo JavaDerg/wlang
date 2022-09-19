@@ -4,4 +4,6 @@ members = [
     "w_tokenize",
     "w_parse",
     "w_analyze",
+    "w_vm",
+    "w_hir",
 ]

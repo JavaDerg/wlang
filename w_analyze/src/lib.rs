@@ -6,6 +6,7 @@ use crate::data::err::ErrorCollector;
 use crate::data::md_raw::RawModuleInfo;
 use crate::data::path::PathBuf;
 use crate::data::Module;
+use crate::vmod::ModuleProvider;
 use std::collections::HashMap;
 use typed_arena::Arena;
 use w_parse::Ident;
@@ -13,10 +14,15 @@ use w_parse::Ident;
 mod data;
 mod elided;
 mod pass1_tsys;
+mod vmod;
+
+pub struct AnalyzerOptions<'a> {
+    dependencies: Vec<Ident<'a>>,
+}
 
 pub fn build_tsys<'a>(
-    root: Ident<'a>,
-    modules: &HashMap<PathBuf<'a>, RawModuleInfo<'a>>,
+    vmd: &mut dyn ModuleProvider<'a>,
+    opt: AnalyzerOptions,
 ) -> Result<(), ErrorCollector<'a>> {
     let collector = ErrorCollector::default();
 
@@ -25,7 +31,9 @@ pub fn build_tsys<'a>(
 
     let root_module = Module::new_root(&modules_arena, &types_arena);
 
-    let target = modules.get(&PathBuf::from(vec![root])).unwrap();
+    for dep in &opt.dependencies {
+        vmd.
+    }
 
     if collector.has_errors() {
         return Err(collector);

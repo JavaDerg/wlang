@@ -175,6 +175,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "w_hir"
+version = "0.1.0"
+dependencies = [
+ "nom",
+]
+
+[[package]]
 name = "w_parse"
 version = "0.1.0"
 dependencies = [
@@ -194,6 +201,10 @@ dependencies = [
  "nom_locate",
  "pretty_assertions",
 ]
+
+[[package]]
+name = "w_vm"
+version = "0.1.0"
 
 [[package]]
 name = "wc"

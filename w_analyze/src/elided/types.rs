@@ -5,7 +5,7 @@ use w_parse::Ident;
 use w_tokenize::Span;
 
 pub struct TypeSystem<'a> {
-    pub flat: HashMap<PathBuf<'a>, ()>,
+    pub flat: HashMap<PathBuf<'a>, ElidedType<'a>>,
 }
 
 pub struct ElidedType<'a> {
