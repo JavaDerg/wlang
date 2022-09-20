@@ -8,7 +8,7 @@ use crate::{parse_name, ErrorChain, Ident, ParResult, TokenSpan};
 
 use nom::branch::alt;
 
-use crate::expr::block::ExprBlock;
+use crate::expr::block::{BlockKind, ExprBlock};
 use crate::expr::branch::{parse_branch, ExprBranch};
 use crate::expr::ctor::{parse_ctor, ExprCtor};
 use crate::expr::loops::{parse_while, ExprWhile};
@@ -196,8 +196,10 @@ impl<'a> Expr<'a> {
             | Expr::Binary(_)
             | Expr::Assign(_)
             | Expr::Define(_) => true,
-            Expr::Block(_) | Expr::Branch(_) => false,
-            Expr::While(ExprWhile { body, .. }) => body.needs_termination(),
+            Expr::Branch(_) => false,
+            Expr::Block(body) | Expr::While(ExprWhile { body, .. }) => {
+                matches!(body.kind, BlockKind::Inline(_))
+            }
         }
     }
 }

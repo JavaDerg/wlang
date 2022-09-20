@@ -1,11 +1,11 @@
 use crate::expr::{parse_expression, Expr};
-use crate::{ParResult, TokenSpan, Weak};
+use crate::{tag, ParResult, TokenSpan, Weak};
 use assert_matches::assert_matches;
 use either::Either;
 use nom::branch::alt;
 use nom::combinator::{cond, eof, map, opt};
 use nom::sequence::pair;
-use nom::Parser;
+use nom::{Offset, Parser, Slice};
 use std::rc::Rc;
 use w_tokenize::{Kind, Span, Token};
 
@@ -18,11 +18,23 @@ pub struct Statement<'a> {
 #[derive(Debug, Clone)]
 pub struct ExprBlock<'a> {
     pub span: Span<'a>,
-    pub stmts: Vec<Statement<'a>>,
-    pub returning: Option<Box<Expr<'a>>>,
+    pub kind: BlockKind<'a>,
+}
+
+#[derive(Debug, Clone)]
+pub enum BlockKind<'a> {
+    Many {
+        stmts: Vec<Statement<'a>>,
+        returning: Option<Box<Expr<'a>>>,
+    },
+    Inline(Box<Expr<'a>>),
 }
 
 pub fn parse_block(i: TokenSpan) -> ParResult<ExprBlock> {
+    alt((parse_block_many, parse_block_inline))(i)
+}
+
+fn parse_block_many(i: TokenSpan) -> ParResult<ExprBlock> {
     let (oi, block) = Weak(Kind::Block(Rc::from([]))).parse(i)?;
     let span = block.span;
     let mut i = assert_matches!(block.kind, Kind::Block(vals) => TokenSpan::new(oi.file, vals));
@@ -67,8 +79,26 @@ pub fn parse_block(i: TokenSpan) -> ParResult<ExprBlock> {
         oi,
         ExprBlock {
             span,
-            stmts: acc,
-            returning: last.map(Box::new),
+            kind: BlockKind::Many {
+                stmts: acc,
+                returning: last.map(Box::new),
+            },
+        },
+    ))
+}
+
+fn parse_block_inline(oi: TokenSpan) -> ParResult<ExprBlock> {
+    let (i, _arrow) = tag!(Kind::InlineBlk)(oi.clone())?;
+    let (i, expr) = parse_expression(i)?;
+
+    let offset = oi.offset(&i);
+    let span = TokenSpan::slice(&oi, ..offset);
+
+    Ok((
+        i,
+        ExprBlock {
+            span: (&span).into(),
+            kind: BlockKind::Inline(Box::new(expr)),
         },
     ))
 }
