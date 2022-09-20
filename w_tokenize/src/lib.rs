@@ -44,6 +44,9 @@ pub enum Kind<'a> {
     /// `_`
     Fill,
 
+    /// `->`
+    Inline,
+
     /// `:`
     Colon,
     /// `::`
@@ -185,6 +188,7 @@ fn token(i: Span) -> TokResult<Option<Token>> {
         }),
         // assignment operators
         op("_", "", || Kind::Fill),
+        op("->", "", || Kind::Inline),
         alt((
             op("<<=", "", || Kind::ShlAssign),
             op(">>=", "", || Kind::ShrAssign),
@@ -465,6 +469,7 @@ impl<'a> Kind<'a> {
             Kind::Number(_) => 40,
             Kind::Colon => 41,
             Kind::Fill => 42,
+            Kind::Inline => 43,
         }
     }
 }
