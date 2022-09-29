@@ -1,0 +1,11 @@
+[package]
+name = "w_ty_eval"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+w_tokenize = { path = "../w_tokenize" }
+w_parse = { path = "../w_parse" }
+w_analyze = { path = "../w_analyze" }
+bevy_ecs = "0.8.1"
+slotmap = "1.0.6"

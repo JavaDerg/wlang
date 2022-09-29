@@ -62,6 +62,24 @@ impl<'a> Path<'a> {
     }
 }
 
+impl<'a> ToString for Path<'a> {
+    fn to_string(&self) -> String {
+        let mut buf = String::new();
+
+        let mut iter = self.path.iter();
+
+        if let Some(ident) = iter.next() {
+            buf.push_str(*ident.0);
+        }
+        for ident in iter {
+            buf.push(':');
+            buf.push_str(*ident.0);
+        }
+
+        buf
+    }
+}
+
 impl<'a, V: Into<Vec<Ident<'a>>>> From<V> for PathBuf<'a> {
     fn from(vec: V) -> Self {
         Self { path: vec.into() }

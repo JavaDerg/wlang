@@ -1,4 +1,5 @@
 mod array_fix;
+mod duplicate_import;
 mod fmt;
 mod multiple_definitions;
 mod recursive_type;
@@ -8,6 +9,7 @@ use crate::data::err::fmt::ErrorFormatter;
 use std::cell::RefCell;
 
 pub use array_fix::*;
+pub use duplicate_import::*;
 pub use multiple_definitions::*;
 pub use recursive_type::*;
 pub use unresolved_type::*;

@@ -6,4 +6,6 @@ members = [
     "w_analyze",
     "w_vm",
     "w_hir",
+    "w_ty_eval",
+    "w_tpath",
 ]
