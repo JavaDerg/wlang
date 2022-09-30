@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "wc",
+    "w_rcstr",
     "w_tokenize",
     "w_parse",
     "w_analyze",

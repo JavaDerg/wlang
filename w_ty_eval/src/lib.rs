@@ -88,7 +88,7 @@ impl<'a> VmState<'a> {
     fn analyze_type(
         &mut self,
         ety: Entity,
-        ItemNamedType { ty, terminated }: ItemNamedType<'a>,
+        ItemNamedType { ty, .. }: ItemNamedType<'a>,
         scope: &Scope<'a>,
     ) {
         match ty {
