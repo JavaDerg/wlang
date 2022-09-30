@@ -11,17 +11,18 @@ use std::ops::{Deref, RangeBounds, RangeFrom};
 use std::pin::Pin;
 use std::rc::Rc;
 use std::str::{CharIndices, Chars};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct RcStr {
     /// may not change ever
-    _origin: Rc<String>,
+    _origin: Arc<String>,
     fragment: &'static str,
 }
 
 impl RcStr {
     pub fn new(str: String) -> Self {
-        let origin = Rc::new(str);
+        let origin = Arc::new(str);
 
         let fragment = origin.as_str();
 

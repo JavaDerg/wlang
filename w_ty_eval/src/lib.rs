@@ -24,7 +24,6 @@ use w_parse::types::ItemTy;
 use w_parse::Ident;
 
 pub struct VmState {
-    path_workaround: SlotMap<PathKey, PathBuf>,
     types: HashMap<PathBuf, Entity>,
 
     root: Ident,
@@ -33,11 +32,6 @@ pub struct VmState {
     errs: ErrorCollector,
 
     world: World,
-}
-
-slotmap::new_key_type! {
-    #[derive(Component)]
-    pub struct PathKey;
 }
 
 impl VmState {
@@ -70,11 +64,10 @@ impl VmState {
                     let mut entity = self.world.spawn();
 
                     let entity_path = scope.current.join(name);
-                    let pk = self.path_workaround.insert(entity_path.clone());
+                    entity.insert(WithPath(entity_path.clone()));
 
                     self.types.insert(entity_path, entity.id());
 
-                    entity.insert(pk);
                     let entity = entity.id();
 
                     self.analyze_type(entity, named_ty, &scope);
@@ -95,8 +88,7 @@ impl VmState {
             ItemTy::Referred(other) => {
                 let other = self.resolve_path(other, scope);
 
-                let path = self.world.get::<PathKey>(ety).unwrap();
-                let path = self.path_workaround.get(*path).unwrap();
+                let path = self.world.get::<WithPath>(ety).unwrap().0.to_string();
 
                 self.world
                     .get_entity_mut(ety)
@@ -104,7 +96,7 @@ impl VmState {
                     .insert(IncompleteType::Product {
                         fields: vec![other],
                         ids: None,
-                        meta: Some(path.to_string()),
+                        meta: Some(path),
                     });
             }
             ItemTy::Struct(TyStruct { fields, .. }) => {
@@ -122,7 +114,7 @@ impl VmState {
         }
     }
 
-    fn resolve_path(&mut self, path: ExprPath, scope: &Scope) -> PathKey {
+    fn resolve_path(&mut self, path: ExprPath, scope: &Scope) -> PathBuf {
         let buf = PathBuf::from(path.path);
         let buf = if path.root.is_some() {
             buf
@@ -131,8 +123,7 @@ impl VmState {
         } else {
             scope.current.join_path(&buf)
         };
-
-        self.path_workaround.insert(buf)
+        buf
     }
 }
 
@@ -142,25 +133,28 @@ struct Scope {
 }
 
 #[derive(Component)]
+struct WithPath(pub PathBuf);
+
+#[derive(Component)]
 pub struct ModuleScope {
-    pub location: PathKey,
+    pub location: PathBuf,
     pub imports: Vec<Entity>,
 }
 
 #[derive(Component)]
 pub struct Dependencies {
-    pub dependencies: Vec<PathKey>,
+    pub dependencies: Vec<PathBuf>,
 }
 
 #[derive(Component)]
 pub enum IncompleteType {
     Product {
-        fields: Vec<PathKey>,
+        fields: Vec<PathBuf>,
         ids: Option<Vec<String>>,
         meta: Option<String>,
     },
     Sum {
-        variants: Vec<PathKey>,
+        variants: Vec<PathBuf>,
         ids: Vec<String>,
     },
 }
