@@ -4,12 +4,12 @@ use std::borrow::Cow;
 
 use w_tokenize::Span;
 
-pub struct ArrayNumberFix<'a> {
-    pub loc: Span<'a>,
+pub struct ArrayNumberFix {
+    pub loc: Span,
     pub msg: Cow<'static, str>,
 }
 
-impl<'a> AnalyzerError<'a> for ArrayNumberFix<'a> {
+impl AnalyzerError for ArrayNumberFix {
     fn kind(&self) -> ErrKind {
         ErrKind::Error
     }
@@ -17,7 +17,7 @@ impl<'a> AnalyzerError<'a> for ArrayNumberFix<'a> {
     fn fmt(&self, f: &mut ErrorFormatter) {
         f.err()
             .description(&*self.msg)
-            .location(self.loc)
+            .location(self.loc.clone())
             .add_note(
                 "Due to compiler limitations, array sizes must be a number literal of usize kind",
             )

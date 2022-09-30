@@ -23,14 +23,14 @@ use w_parse::types::r#struct::TyStruct;
 use w_parse::types::ItemTy;
 use w_parse::Ident;
 
-pub struct VmState<'a> {
-    path_workaround: SlotMap<PathKey, PathBuf<'a>>,
-    types: HashMap<PathBuf<'a>, Entity>,
+pub struct VmState {
+    path_workaround: SlotMap<PathKey, PathBuf>,
+    types: HashMap<PathBuf, Entity>,
 
-    root: Ident<'a>,
-    missing: Vec<PathBuf<'a>>,
+    root: Ident,
+    missing: Vec<PathBuf>,
 
-    errs: ErrorCollector<'a>,
+    errs: ErrorCollector,
 
     world: World,
 }
@@ -40,8 +40,8 @@ slotmap::new_key_type! {
     pub struct PathKey;
 }
 
-impl<'a> VmState<'a> {
-    pub fn run(&mut self, module: RawModuleInfo<'a>) -> Option<PathBuf<'a>> {
+impl VmState {
+    pub fn run(&mut self, module: RawModuleInfo) -> Option<PathBuf> {
         let mut scope = Scope {
             current: module.origin.join(module.parsed.name),
             imports: HashMap::new(),
@@ -88,8 +88,8 @@ impl<'a> VmState<'a> {
     fn analyze_type(
         &mut self,
         ety: Entity,
-        ItemNamedType { ty, .. }: ItemNamedType<'a>,
-        scope: &Scope<'a>,
+        ItemNamedType { ty, .. }: ItemNamedType,
+        scope: &Scope,
     ) {
         match ty {
             ItemTy::Referred(other) => {
@@ -122,7 +122,7 @@ impl<'a> VmState<'a> {
         }
     }
 
-    fn resolve_path(&mut self, path: ExprPath<'a>, scope: &Scope<'a>) -> PathKey {
+    fn resolve_path(&mut self, path: ExprPath, scope: &Scope) -> PathKey {
         let buf = PathBuf::from(path.path);
         let buf = if path.root.is_some() {
             buf
@@ -136,9 +136,9 @@ impl<'a> VmState<'a> {
     }
 }
 
-struct Scope<'a> {
-    current: PathBuf<'a>,
-    imports: HashMap<Ident<'a>, PathBuf<'a>>,
+struct Scope {
+    current: PathBuf,
+    imports: HashMap<Ident, PathBuf>,
 }
 
 #[derive(Component)]
@@ -172,12 +172,12 @@ mod marker {
     pub struct Incomplete;
 }
 
-fn flatten_imports<'a>(
-    out: &mut HashMap<Ident<'a>, PathBuf<'a>>,
-    rel_root: PathBuf<'a>,
-    base: Option<&ExprPath<'a>>,
-    imp: &Imports<'a>,
-    errs: &ErrorCollector<'a>,
+fn flatten_imports(
+    out: &mut HashMap<Ident, PathBuf>,
+    rel_root: PathBuf,
+    base: Option<&ExprPath>,
+    imp: &Imports,
+    errs: &ErrorCollector,
 ) {
     let base = base
         .map(|base| {
@@ -195,8 +195,8 @@ fn flatten_imports<'a>(
             let imp = base.join_path(&tp);
             if let Some(og) = out.get(imp.last().unwrap()) {
                 errs.add_error(DuplicateImport {
-                    original: og.last().unwrap().0,
-                    new: imp.last().unwrap().0,
+                    original: og.last().unwrap().0.clone(),
+                    new: imp.last().unwrap().0.clone(),
                 });
                 return;
             }

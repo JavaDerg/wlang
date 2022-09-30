@@ -22,11 +22,7 @@ use w_parse::util::NameTyPair;
 use w_parse::ParsedModule;
 use w_tokenize::Number;
 
-pub fn run_pass1<'a, 'gc>(
-    module: &ParsedModule<'a>,
-    tsys: &'gc Module<'a, 'gc>,
-    errs: &ErrorCollector<'a>,
-) {
+pub fn run_pass1<'gc>(module: &ParsedModule, tsys: &'gc Module<'gc>, errs: &ErrorCollector) {
     // Imports
     // for item in module.items.iter() {
     //     let def = match item {
@@ -103,11 +99,7 @@ pub fn run_pass1<'a, 'gc>(
 //     }
 // }
 
-fn build_type<'a, 'gc>(
-    ty: &ItemTy<'a>,
-    tsys: &'gc Module<'a, 'gc>,
-    errs: &ErrorCollector<'a>,
-) -> TypeKind<'a, 'gc> {
+fn build_type<'gc>(ty: &ItemTy, tsys: &'gc Module<'gc>, errs: &ErrorCollector) -> TypeKind<'gc> {
     match ty {
         ItemTy::Referred(reference) => {
             let (root, path) = conv_path(tsys, reference);
@@ -117,7 +109,7 @@ fn build_type<'a, 'gc>(
             span_struct,
             fields,
         }) => TypeKind::Struct(TypeStruct {
-            def: *span_struct,
+            def: span_struct.clone(),
             fields: fields
                 .iter()
                 .map(|NameTyPair { name, ty }| (name.clone(), build_type(ty, tsys, errs)))
@@ -127,7 +119,7 @@ fn build_type<'a, 'gc>(
             span_enum,
             variants,
         }) => TypeKind::Enum(TypeEnum {
-            def: *span_enum,
+            def: span_enum.clone(),
             variants: variants
                 .iter()
                 .map(|(name, ty)| {
@@ -144,19 +136,19 @@ fn build_type<'a, 'gc>(
             args,
             ret_ty,
         }) => TypeKind::Func(TypeFunc {
-            def: *span_func,
+            def: span_func.clone(),
             args: args.iter().map(|ty| build_type(ty, tsys, errs)).collect(),
             ret: Box::new(build_type(ret_ty, tsys, errs)),
         }),
         ItemTy::Array(TyArray { span, ty, size }) => TypeKind::Array(TypeArray {
-            def: *span,
+            def: span.clone(),
             ty: Box::new(build_type(ty, tsys, errs)),
             len: if let Some(num) = size {
                 match array_num_to_sized(&**num) {
                     Ok(n) => Some(n),
                     Err(err) => {
                         errs.add_error(ArrayNumberFix {
-                            loc: num.number,
+                            loc: num.number.clone(),
                             msg: err,
                         });
                         None
@@ -167,14 +159,14 @@ fn build_type<'a, 'gc>(
             },
         }),
         ItemTy::Pointer(TyPtr { span_ptr, ty }) => TypeKind::Ptr(TypePtr {
-            def: *span_ptr,
+            def: span_ptr.clone(),
             ty: Box::new(build_type(ty, tsys, errs)),
         }),
-        ItemTy::Never(TyNever(span)) => TypeKind::Never(TypeNever(*span)),
+        ItemTy::Never(TyNever(span)) => TypeKind::Never(TypeNever(span.clone())),
     }
 }
 
-fn undefined_type_check<'a, 'gc>(tsys: &'gc Module<'a, 'gc>, errs: &ErrorCollector<'a>) {
+fn undefined_type_check<'gc>(tsys: &'gc Module<'gc>, errs: &ErrorCollector) {
     tsys.types
         .borrow()
         .iter()
@@ -191,20 +183,17 @@ mod rrc {
     use std::ptr;
     use w_parse::Ident;
 
-    pub fn recursive_reference_check<'a, 'gc>(
-        tsys: &'gc Module<'a, 'gc>,
-        errs: &ErrorCollector<'a>,
-    ) {
+    pub fn recursive_reference_check<'gc>(tsys: &'gc Module<'gc>, errs: &ErrorCollector) {
         tsys.types.borrow().iter().for_each(|(id, ty)| {
             rrc_investigate(ty, id.clone(), errs, &mut vec![]);
         })
     }
 
-    fn rrc_investigate<'a, 'gc>(
-        ty: &'gc TypeRef<'a, 'gc>,
-        loc: Ident<'a>,
-        errs: &ErrorCollector<'a>,
-        stack: &mut Vec<&'gc TypeRef<'a, 'gc>>,
+    fn rrc_investigate<'gc>(
+        ty: &'gc TypeRef<'gc>,
+        loc: Ident,
+        errs: &ErrorCollector,
+        stack: &mut Vec<&'gc TypeRef<'gc>>,
     ) {
         stack.push(ty);
         match ty.definition.borrow().as_ref().unwrap() {
@@ -221,10 +210,10 @@ mod rrc {
         stack.pop();
     }
 
-    fn rrc_investigate_tk<'a, 'gc>(
-        ty: &TypeKind<'a, 'gc>,
-        errs: &ErrorCollector<'a>,
-        stack: &mut Vec<&'gc TypeRef<'a, 'gc>>,
+    fn rrc_investigate_tk<'gc>(
+        ty: &TypeKind<'gc>,
+        errs: &ErrorCollector,
+        stack: &mut Vec<&'gc TypeRef<'gc>>,
     ) {
         match ty {
             TypeKind::Referred(tr, path) => {
@@ -255,21 +244,18 @@ mod rrc {
     }
 }
 
-fn conv_tuple<'a, 'gc>(
-    TyTuple { span, types }: &TyTuple<'a>,
-    tsys: &'gc Module<'a, 'gc>,
-    errs: &ErrorCollector<'a>,
-) -> TypeTuple<'a, 'gc> {
+fn conv_tuple<'gc>(
+    TyTuple { span, types }: &TyTuple,
+    tsys: &'gc Module<'gc>,
+    errs: &ErrorCollector,
+) -> TypeTuple<'gc> {
     TypeTuple {
-        def: *span,
+        def: span.clone(),
         fields: types.iter().map(|ty| build_type(ty, tsys, errs)).collect(),
     }
 }
 
-fn conv_path<'a, 'gc>(
-    tsys: &'gc Module<'a, 'gc>,
-    path: &ExprPath<'a>,
-) -> (&'gc Module<'a, 'gc>, PathBuf<'a>) {
+fn conv_path<'gc>(tsys: &'gc Module<'gc>, path: &ExprPath) -> (&'gc Module<'gc>, PathBuf) {
     let md = if path.root.is_some() {
         tsys.root()
     } else {
@@ -293,7 +279,7 @@ fn array_num_to_sized(num: &Number) -> Result<u64, Cow<'static, str>> {
     let base = num
         .base
         .as_ref()
-        .map(|span| match **span {
+        .map(|span| match &***span {
             "0x" => 16,
             "0o" => 8,
             "0b" => 2,
@@ -304,7 +290,7 @@ fn array_num_to_sized(num: &Number) -> Result<u64, Cow<'static, str>> {
     let num = if num.number.find('_').is_some() {
         Cow::Owned(num.number.replace('_', ""))
     } else {
-        Cow::Borrowed(*num.number)
+        Cow::Borrowed(&**num.number)
     };
 
     u64::from_str_radix(&num, base).map_err(|err| format!("Number out of scope: {err}").into())

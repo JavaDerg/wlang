@@ -10,9 +10,9 @@ pub mod named;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
-pub enum Item<'a> {
-    Definer(ItemNamed<'a>),
-    Import(ItemImports<'a>),
+pub enum Item {
+    Definer(ItemNamed),
+    Import(ItemImports),
 }
 
 pub fn parse_item(i: TokenSpan) -> ParResult<Item> {

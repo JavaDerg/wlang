@@ -6,17 +6,17 @@ use std::rc::Rc;
 
 use w_tokenize::{Kind, Span, Token};
 
-pub type ParResult<'a, T = TokenSpan<'a>> = IResult<TokenSpan<'a>, T, ErrorChain<'a>>;
+pub type ParResult<T = TokenSpan> = IResult<TokenSpan, T, ErrorChain>;
 
 #[derive(Debug, Clone)]
-pub struct TokenSpan<'a> {
-    pub(crate) file: Span<'a>,
+pub struct TokenSpan {
+    pub(crate) file: Span,
     pub(crate) local: Range<usize>,
-    pub(crate) tokens: Rc<[Token<'a>]>,
+    pub(crate) tokens: Rc<[Token]>,
 }
 
-impl<'a> TokenSpan<'a> {
-    pub fn new(file: Span<'a>, tokens: Rc<[Token<'a>]>) -> TokenSpan<'a> {
+impl TokenSpan {
+    pub fn new(file: Span, tokens: Rc<[Token]>) -> TokenSpan {
         TokenSpan {
             file,
             local: 0..tokens.len(),
@@ -24,7 +24,7 @@ impl<'a> TokenSpan<'a> {
         }
     }
 
-    pub fn as_span(&self) -> Span<'a> {
+    pub fn as_span(&self) -> Span {
         let diff = self.local.end - self.local.start;
         match diff {
             0 => {
@@ -32,10 +32,10 @@ impl<'a> TokenSpan<'a> {
                 let offset = last.span.location_offset() + last.span.len();
                 self.file.slice(offset..)
             }
-            1 => self.tokens[self.local.start].span,
+            1 => self.tokens[self.local.start].span.clone(),
             _ => {
-                let start = self.tokens[self.local.start].span;
-                let end = self.tokens[self.local.end].span;
+                let start = self.tokens[self.local.start].span.clone();
+                let end = self.tokens[self.local.end].span.clone();
 
                 let so = start.location_offset();
                 let eo = end.location_offset() + end.len();
@@ -46,19 +46,19 @@ impl<'a> TokenSpan<'a> {
     }
 }
 
-impl<'a> From<&TokenSpan<'a>> for Span<'a> {
-    fn from(tks: &TokenSpan<'a>) -> Self {
+impl From<&TokenSpan> for Span {
+    fn from(tks: &TokenSpan) -> Self {
         tks.as_span()
     }
 }
 
-impl<'a> Offset for TokenSpan<'a> {
+impl Offset for TokenSpan {
     fn offset(&self, second: &Self) -> usize {
         second.local.start - self.local.start
     }
 }
 
-impl<'a> Slice<Range<usize>> for TokenSpan<'a> {
+impl Slice<Range<usize>> for TokenSpan {
     fn slice(&self, range: Range<usize>) -> Self {
         let offset_start = self.local.start + range.start;
         let offset_end = self.local.start + range.end;
@@ -68,14 +68,14 @@ impl<'a> Slice<Range<usize>> for TokenSpan<'a> {
         }
 
         TokenSpan {
-            file: self.file,
+            file: self.file.clone(),
             local: offset_start..offset_end,
             tokens: self.tokens.clone(),
         }
     }
 }
 
-impl<'a> Slice<RangeTo<usize>> for TokenSpan<'a> {
+impl Slice<RangeTo<usize>> for TokenSpan {
     fn slice(&self, range: RangeTo<usize>) -> Self {
         let offset_end = self.local.start + range.end;
 
@@ -84,20 +84,20 @@ impl<'a> Slice<RangeTo<usize>> for TokenSpan<'a> {
         }
 
         TokenSpan {
-            file: self.file,
+            file: self.file.clone(),
             local: self.local.start..offset_end,
             tokens: self.tokens.clone(),
         }
     }
 }
 
-impl<'a> InputTake for TokenSpan<'a> {
+impl InputTake for TokenSpan {
     fn take(&self, count: usize) -> Self {
         if self.local.start + count > self.tokens.len() {
             panic!("TokenSpan::take: out of bounds");
         }
         Self {
-            file: self.file,
+            file: self.file.clone(),
             local: self.local.start..self.local.end + count,
             tokens: self.tokens.clone(),
         }
@@ -114,12 +114,12 @@ impl<'a> InputTake for TokenSpan<'a> {
 
         (
             Self {
-                file: self.file,
+                file: self.file.clone(),
                 local: mid..right,
                 tokens: self.tokens.clone(),
             },
             Self {
-                file: self.file,
+                file: self.file.clone(),
                 local: left..mid,
                 tokens: self.tokens.clone(),
             },
@@ -127,30 +127,30 @@ impl<'a> InputTake for TokenSpan<'a> {
     }
 }
 
-impl<'a> InputLength for TokenSpan<'a> {
+impl InputLength for TokenSpan {
     fn input_len(&self) -> usize {
         self.local.len()
     }
 }
 
 #[derive(Clone)]
-pub struct Strong<'a>(pub Kind<'a>);
+pub struct Strong(pub Kind);
 #[derive(Clone)]
-pub struct Weak<'a>(pub Kind<'a>);
+pub struct Weak(pub Kind);
 
-impl<'a> InputLength for Strong<'a> {
+impl InputLength for Strong {
     fn input_len(&self) -> usize {
         1
     }
 }
-impl<'a> InputLength for Weak<'a> {
+impl InputLength for Weak {
     fn input_len(&self) -> usize {
         1
     }
 }
 
-impl<'a, 'b> Compare<Strong<'a>> for Token<'b> {
-    fn compare(&self, t: Strong<'a>) -> CompareResult {
+impl Compare<Strong> for Token {
+    fn compare(&self, t: Strong) -> CompareResult {
         if self.kind == t.0 {
             CompareResult::Ok
         } else {
@@ -158,12 +158,12 @@ impl<'a, 'b> Compare<Strong<'a>> for Token<'b> {
         }
     }
 
-    fn compare_no_case(&self, t: Strong<'a>) -> CompareResult {
+    fn compare_no_case(&self, t: Strong) -> CompareResult {
         self.compare(t)
     }
 }
-impl<'a, 'b> Compare<Weak<'a>> for Token<'b> {
-    fn compare(&self, t: Weak<'a>) -> CompareResult {
+impl Compare<Weak> for Token {
+    fn compare(&self, t: Weak) -> CompareResult {
         if self.kind.cmp_id() == t.0.cmp_id() {
             CompareResult::Ok
         } else {
@@ -171,13 +171,13 @@ impl<'a, 'b> Compare<Weak<'a>> for Token<'b> {
         }
     }
 
-    fn compare_no_case(&self, t: Weak<'a>) -> CompareResult {
+    fn compare_no_case(&self, t: Weak) -> CompareResult {
         self.compare(t)
     }
 }
 
-impl<'a, 'b> Compare<Strong<'b>> for TokenSpan<'a> {
-    fn compare(&self, t: Strong<'b>) -> CompareResult {
+impl Compare<Strong> for TokenSpan {
+    fn compare(&self, t: Strong) -> CompareResult {
         if self.len() >= 1 {
             self[0].compare(t)
         } else {
@@ -185,7 +185,7 @@ impl<'a, 'b> Compare<Strong<'b>> for TokenSpan<'a> {
         }
     }
 
-    fn compare_no_case(&self, t: Strong<'b>) -> CompareResult {
+    fn compare_no_case(&self, t: Strong) -> CompareResult {
         if self.len() >= 1 {
             self[0].compare_no_case(t)
         } else {
@@ -193,8 +193,8 @@ impl<'a, 'b> Compare<Strong<'b>> for TokenSpan<'a> {
         }
     }
 }
-impl<'a, 'c> Compare<Weak<'c>> for TokenSpan<'a> {
-    fn compare(&self, t: Weak<'c>) -> CompareResult {
+impl Compare<Weak> for TokenSpan {
+    fn compare(&self, t: Weak) -> CompareResult {
         if self.len() >= 1 {
             self[0].compare(t)
         } else {
@@ -202,7 +202,7 @@ impl<'a, 'c> Compare<Weak<'c>> for TokenSpan<'a> {
         }
     }
 
-    fn compare_no_case(&self, t: Weak<'c>) -> CompareResult {
+    fn compare_no_case(&self, t: Weak) -> CompareResult {
         if self.len() >= 1 {
             self[0].compare_no_case(t)
         } else {
@@ -211,8 +211,8 @@ impl<'a, 'c> Compare<Weak<'c>> for TokenSpan<'a> {
     }
 }
 
-impl<'a, 'b> Parser<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> for Strong<'b> {
-    fn parse(&mut self, input: TokenSpan<'a>) -> IResult<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> {
+impl Parser<TokenSpan, Token, ErrorChain> for Strong {
+    fn parse(&mut self, input: TokenSpan) -> IResult<TokenSpan, Token, ErrorChain> {
         if input.is_empty() {
             Err(Err::Error(ErrorChain::from(Error::new(
                 input,
@@ -231,8 +231,8 @@ impl<'a, 'b> Parser<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> for Strong<'b> {
         }
     }
 }
-impl<'a, 'b> Parser<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> for Weak<'b> {
-    fn parse(&mut self, input: TokenSpan<'a>) -> IResult<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> {
+impl Parser<TokenSpan, Token, ErrorChain> for Weak {
+    fn parse(&mut self, input: TokenSpan) -> IResult<TokenSpan, Token, ErrorChain> {
         if input.is_empty() {
             Err(Err::Error(ErrorChain::from(Error::new(
                 input,
@@ -252,8 +252,8 @@ impl<'a, 'b> Parser<TokenSpan<'a>, Token<'a>, ErrorChain<'a>> for Weak<'b> {
     }
 }
 
-impl<'a> Deref for TokenSpan<'a> {
-    type Target = [Token<'a>];
+impl Deref for TokenSpan {
+    type Target = [Token];
     fn deref(&self) -> &Self::Target {
         &self.tokens[self.local.clone()]
     }

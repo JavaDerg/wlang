@@ -3,9 +3,9 @@ use crate::types::func::{parse_ty_named_func, TyNamedFunc};
 use crate::{ParResult, TokenSpan};
 
 #[derive(Debug, Clone)]
-pub struct ItemFunc<'a> {
-    pub func: TyNamedFunc<'a>,
-    pub body: ExprBlock<'a>,
+pub struct ItemFunc {
+    pub func: TyNamedFunc,
+    pub body: ExprBlock,
 }
 
 pub fn parse_item_func(i: TokenSpan) -> ParResult<ItemFunc> {

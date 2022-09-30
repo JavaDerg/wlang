@@ -8,15 +8,15 @@ use nom::Parser;
 use w_tokenize::Kind;
 
 #[derive(Debug, Clone)]
-pub enum Imports<'a> {
-    Single(ExprPath<'a>),
-    Multiple(ExprPath<'a>, Vec<Imports<'a>>),
+pub enum Imports {
+    Single(ExprPath),
+    Multiple(ExprPath, Vec<Imports>),
 }
 
 #[derive(Debug, Clone)]
-pub struct ItemImports<'a> {
-    pub imports: Vec<Imports<'a>>,
-    pub from: ExprPath<'a>,
+pub struct ItemImports {
+    pub imports: Vec<Imports>,
+    pub from: ExprPath,
 }
 
 pub fn parse_item_import(i: TokenSpan) -> ParResult<ItemImports> {
@@ -29,7 +29,7 @@ pub fn parse_item_import(i: TokenSpan) -> ParResult<ItemImports> {
 
 fn parse_imports(i: TokenSpan) -> ParResult<Vec<Imports>> {
     let (i, block) = tag!(Kind::Block(_), Token { kind: Kind::Block(vals), .. } => vals)(i)?;
-    let block = TokenSpan::new(i.file, block);
+    let block = TokenSpan::new(i.file.clone(), block);
 
     let (_, imports) = all_consuming(parse_many0(alt((
         map(

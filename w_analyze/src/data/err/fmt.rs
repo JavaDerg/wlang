@@ -4,29 +4,29 @@ use w_tokenize::Span;
 
 pub struct ErrorFormatter {}
 
-pub struct Error<'a> {
+pub struct Error {
     kind: ErrKind,
 
     description: String,
-    location: Span<'a>,
+    location: Span,
 
-    help: Vec<Error<'a>>,
+    help: Vec<Error>,
     notes: Vec<String>,
 }
 
-pub struct ErrorBuilder<'a, 'b> {
+pub struct ErrorBuilder<'b> {
     fmt: Option<&'b mut ErrorFormatter>,
     kind: ErrKind,
 
     description: Option<String>,
-    location: Option<Span<'a>>,
+    location: Option<Span>,
 
-    elaborations: Vec<Error<'a>>,
-    help: Vec<Error<'a>>,
+    elaborations: Vec<Error>,
+    help: Vec<Error>,
     notes: Vec<String>,
 }
 
-impl<'a, 'b> ErrorBuilder<'a, 'b> {
+impl<'b> ErrorBuilder<'b> {
     fn derive_new(&self) -> Self {
         Self {
             fmt: None,
@@ -44,8 +44,8 @@ macro_rules! define_builder_steps {
     {
         $name:ident $((0, $($dty:ty),*))? => { $(fn $fn_name:ident ($($args:tt)*) -> $next:ty $fn_body:block)* } $(,)?
     } => {
-        pub struct $name<'a, 'b>(pub(super) ErrorBuilder<'a, 'b>, $($($dty),*)?);
-        impl<'a, 'b> $name<'a, 'b> {
+        pub struct $name<'b>(pub(super) ErrorBuilder<'b>, $($($dty),*)?);
+        impl<'b> $name<'b> {
             $(
                 pub fn $fn_name ($($args)*) -> $next $fn_body
             )*
@@ -100,16 +100,16 @@ mod builder {
     use w_tokenize::Span;
 
     define_builder_steps! {
-        StepDesc => { fn description(mut self, text: impl Into<String>) -> StepLoc<'a, 'b> {
+        StepDesc => { fn description(mut self, text: impl Into<String>) -> StepLoc<'b> {
             self.0.description = Some(text.into());
             StepLoc(self.0)
         } },
-        StepLoc => { fn location(mut self, loc: impl Into<Span<'a>>) -> StepDone<'a, 'b> {
+        StepLoc => { fn location(mut self, loc: impl Into<Span>) -> StepDone<'b> {
             self.0.location = Some(loc.into());
             StepDone(self.0)
         } },
         StepDone => {
-            fn build(self) -> Error<'a> {
+            fn build(self) -> Error {
                 Error {
                     kind: self.0.kind,
 
@@ -126,11 +126,11 @@ mod builder {
                 fmt.submit(err);
                 fmt
             }
-            fn add_elaboration(self) -> StepHelpDesc<'a, 'b> {
+            fn add_elaboration(self) -> StepHelpDesc<'b> {
                 let help = self.0.derive_new();
                 StepHelpDesc(self.0, help, false)
             }
-            fn add_help(self) -> StepHelpDesc<'a, 'b> {
+            fn add_help(self) -> StepHelpDesc<'b> {
                 let help = self.0.derive_new();
                 StepHelpDesc(self.0, help, true)
             }
@@ -139,16 +139,16 @@ mod builder {
                 self
             }
         },
-        StepHelpDesc (0, ErrorBuilder<'a, 'b>, bool) => { fn description(mut self, text: impl Into<String>) -> StepHelpLoc<'a, 'b> {
+        StepHelpDesc (0, ErrorBuilder<'b>, bool) => { fn description(mut self, text: impl Into<String>) -> StepHelpLoc<'b> {
             self.1.description = Some(text.into());
             StepHelpLoc(self.0, self.1, self.2)
         } },
-        StepHelpLoc (0, ErrorBuilder<'a, 'b>, bool) => { fn location(mut self, loc: impl Into<Span<'a>>) -> StepHelpDone<'a, 'b> {
+        StepHelpLoc (0, ErrorBuilder<'b>, bool) => { fn location(mut self, loc: impl Into<Span>) -> StepHelpDone<'b> {
             self.1.location = Some(loc.into());
             StepHelpDone(self.0, self.1, self.2)
         } },
-        StepHelpDone (0, ErrorBuilder<'a, 'b>, bool) => {
-            fn build_help(mut self) -> StepDone<'a, 'b> {
+        StepHelpDone (0, ErrorBuilder<'b>, bool) => {
+            fn build_help(mut self) -> StepDone<'b> {
                 (match self.2 {
                     true => &mut self.0.help,
                     false => &mut self.0.elaborations,

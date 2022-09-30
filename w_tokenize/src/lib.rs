@@ -26,18 +26,19 @@ use crate::number::parse_integer;
 pub use crate::number::Number;
 use crate::string::parse_string;
 use error::ToTokenError;
+use w_rcstr::RcStr;
 
-pub type Span<'a> = nom_locate::LocatedSpan<&'a str, &'a str>;
-pub type TokResult<'a, R = Span<'a>> = IResult<Span<'a>, R, TokenError<'a>>;
+pub type Span = nom_locate::LocatedSpan<RcStr>;
+pub type TokResult<R = Span> = IResult<Span, R, TokenError>;
 
 #[derive(Debug, Clone)]
-pub struct Token<'a> {
-    pub span: Span<'a>,
-    pub kind: Kind<'a>,
+pub struct Token {
+    pub span: Span,
+    pub kind: Kind,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Kind<'a> {
+pub enum Kind {
     /// Regular identifier
     Ident,
 
@@ -133,14 +134,14 @@ pub enum Kind<'a> {
     ShrAssign,
 
     /// `(TOKENS)`
-    Tuple(Rc<[Token<'a>]>),
+    Tuple(Rc<[Token]>),
     /// `{TOKENS}`
-    Block(Rc<[Token<'a>]>),
+    Block(Rc<[Token]>),
     /// `[TOKENS]`
-    Array(Rc<[Token<'a>]>),
+    Array(Rc<[Token]>),
 
     String(String),
-    Number(Box<Number<'a>>),
+    Number(Box<Number>),
 }
 
 pub fn tokenize(mut i: Span) -> TokResult<Vec<Token>> {
@@ -164,7 +165,7 @@ fn token(i: Span) -> TokResult<Option<Token>> {
     // yeet the whitespaces
     let (oi, _) = whitespace(i)?;
 
-    let (i, _) = opt(consume_singleline_comments)(oi)?;
+    let (i, _) = opt(consume_singleline_comments)(oi.clone())?;
     let (i, _) = opt(consume_multiline_comments)(i)?;
 
     let comments_pruned = oi.offset(&i) != 0;
@@ -242,7 +243,7 @@ fn token(i: Span) -> TokResult<Option<Token>> {
             op(";", "", || Kind::Semicolon),
             op("=", "", || Kind::Assign),
         )),
-    ))(i);
+    ))(i.clone());
 
     if res.is_ok() {
         res.map(|(i, tok)| (i, Some(tok)))
@@ -258,7 +259,7 @@ fn consume_singleline_comments(mut oi: Span) -> TokResult<()> {
         let (i, _) = tag("//")(oi)?;
         let (i, _) = terminated(many0(is_not("\r\n")), whitespace)(i)?;
         oi = i;
-        if tag::<_, _, TokenError>("//")(i).is_err() {
+        if tag::<_, _, TokenError>("//")(oi.clone()).is_err() {
             break;
         }
     }
@@ -317,12 +318,12 @@ fn parse_array(oi: Span) -> TokResult<Token> {
 }
 
 fn parsed_delimited(oi: Span, start: char, end: char) -> TokResult<(Span, Vec<Token>)> {
-    let (mut i, _) = pair(char(start), whitespace)(oi)?;
+    let (mut i, _) = pair(char(start), whitespace)(oi.clone())?;
     let mut acc = vec![];
 
     let last_err;
     loop {
-        match token(i) {
+        match token(i.clone()) {
             Ok((ni, token)) => {
                 if let Some(token) = token {
                     acc.push(token)
@@ -339,7 +340,7 @@ fn parsed_delimited(oi: Span, start: char, end: char) -> TokResult<(Span, Vec<To
                     .into(),
                 );
                 let err = TokenError {
-                    span: oi,
+                    span: oi.clone(),
                     kind: TokenErrorKind::Other(Box::new(err)),
                     reason: Some(
                         "Failed to parse delimited section due to unparseable token inside".into(),
@@ -368,11 +369,11 @@ fn parsed_delimited(oi: Span, start: char, end: char) -> TokResult<(Span, Vec<To
     }
 }
 
-fn op<'a>(
+fn op(
     op: &'static str,
     bound: &'static str,
-    kind: fn() -> Kind<'static>,
-) -> impl FnMut(Span<'a>) -> TokResult<Token<'a>> + 'a {
+    kind: fn() -> Kind,
+) -> impl FnMut(Span) -> TokResult<Token> {
     map(bounded(tag(op), move |c| bound.contains(c)), move |o| {
         Token {
             span: o,
@@ -399,9 +400,9 @@ fn boundary(i: Span, mut fail: impl FnMut(char) -> bool) -> TokResult<()> {
     }
 }
 
-fn bounded<'a, O, F, B>(mut parser: F, mut fail_bound: B) -> impl FnMut(Span<'a>) -> TokResult<O>
+fn bounded<O, F, B>(mut parser: F, mut fail_bound: B) -> impl FnMut(Span) -> TokResult<O>
 where
-    F: Parser<Span<'a>, O, TokenError<'a>>,
+    F: Parser<Span, O, TokenError>,
     B: FnMut(char) -> bool,
 {
     move |i| {
@@ -415,14 +416,14 @@ fn whitespace(i: Span) -> TokResult<Span> {
     take_while(char::is_whitespace)(i)
 }
 
-impl<'a> PartialEq for Token<'a> {
+impl PartialEq for Token {
     fn eq(&self, other: &Self) -> bool {
         *self.span == *other.span || self.kind == other.kind
     }
 }
-impl<'a> Eq for Token<'a> {}
+impl Eq for Token {}
 
-impl<'a> Kind<'a> {
+impl Kind {
     // Important for weak comparison
     pub fn cmp_id(&self) -> u32 {
         match self {
@@ -474,7 +475,7 @@ impl<'a> Kind<'a> {
     }
 }
 
-impl<'a> InputLength for Token<'a> {
+impl InputLength for Token {
     fn input_len(&self) -> usize {
         1
     }

@@ -24,7 +24,7 @@ pub use module::{parse_module, ParsedModule};
 pub type SVec<T> = Rc<[T]>;
 
 #[derive(Debug, Clone)]
-pub struct Ident<'a>(pub Span<'a>);
+pub struct Ident(pub Span);
 
 pub fn parse(i: TokenSpan) -> ParResult<()> {
     Ok((i, ()))
@@ -53,7 +53,7 @@ fn parse_name(i: TokenSpan) -> ParResult<Ident> {
 
 fn keyword_check(ident: &Ident) -> bool {
     !matches!(
-        *ident.0,
+        &**ident.0,
         "struct"
             | "enum"
             | "func"
@@ -68,15 +68,15 @@ fn keyword_check(ident: &Ident) -> bool {
     )
 }
 
-impl<'a> Hash for Ident<'a> {
+impl Hash for Ident {
     fn hash<H: Hasher>(&self, state: &mut H) {
         (*self.0).hash(state)
     }
 }
 
-impl<'a> PartialEq for Ident<'a> {
+impl PartialEq for Ident {
     fn eq(&self, other: &Self) -> bool {
         (*self.0) == (*other.0)
     }
 }
-impl<'a> Eq for Ident<'a> {}
+impl Eq for Ident {}

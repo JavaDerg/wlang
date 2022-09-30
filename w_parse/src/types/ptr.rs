@@ -2,9 +2,9 @@ use crate::{parse_type, tag, ItemTy, ParResult, TokenSpan};
 use w_tokenize::Span;
 
 #[derive(Debug, Clone)]
-pub struct TyPtr<'a> {
-    pub span_ptr: Span<'a>,
-    pub ty: Box<ItemTy<'a>>,
+pub struct TyPtr {
+    pub span_ptr: Span,
+    pub ty: Box<ItemTy>,
 }
 
 pub fn parse_ty_ptr(i: TokenSpan) -> ParResult<TyPtr> {

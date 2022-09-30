@@ -15,8 +15,8 @@ pub use recursive_type::*;
 pub use unresolved_type::*;
 
 #[derive(Default)]
-pub struct ErrorCollector<'a> {
-    errors: RefCell<Vec<Box<dyn AnalyzerError<'a>>>>,
+pub struct ErrorCollector {
+    errors: RefCell<Vec<Box<dyn AnalyzerError>>>,
     has_errors: RefCell<bool>,
 }
 
@@ -26,13 +26,13 @@ pub enum ErrKind {
     Warning,
 }
 
-pub trait AnalyzerError<'a>: 'a {
+pub trait AnalyzerError {
     fn kind(&self) -> ErrKind;
     fn fmt(&self, f: &mut ErrorFormatter);
 }
 
-impl<'a> ErrorCollector<'a> {
-    pub fn add_error(&self, error: impl AnalyzerError<'a> + 'a) {
+impl ErrorCollector {
+    pub fn add_error(&self, error: impl AnalyzerError + 'static) {
         let err = matches!(error.kind(), ErrKind::Error);
 
         self.errors.borrow_mut().push(Box::new(error));

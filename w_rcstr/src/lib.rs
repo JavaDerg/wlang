@@ -1,11 +1,13 @@
 use nom::error::{ErrorKind, ParseError};
 use nom::{
-    AsBytes, Compare, ExtendInto, FindToken, IResult, InputIter, InputLength, InputTake,
-    InputTakeAtPosition, Needed, Offset, UnspecializedInput,
+    AsBytes, Compare, CompareResult, ExtendInto, FindToken, IResult, InputIter, InputLength,
+    InputTake, InputTakeAtPosition, Needed, Offset, Slice, UnspecializedInput,
 };
+use std::borrow::Borrow;
+use std::fmt::{Debug, Display, Formatter};
 use std::iter::Enumerate;
 use std::mem::{transmute, MaybeUninit};
-use std::ops::Deref;
+use std::ops::{Deref, RangeBounds, RangeFrom};
 use std::pin::Pin;
 use std::rc::Rc;
 use std::str::{CharIndices, Chars};
@@ -18,7 +20,7 @@ pub struct RcStr {
 }
 
 impl RcStr {
-    fn new(str: String) -> Self {
+    pub fn new(str: String) -> Self {
         let origin = Rc::new(str);
 
         let fragment = origin.as_str();
@@ -134,5 +136,71 @@ impl UnspecializedInput for RcStr {}
 impl Offset for RcStr {
     fn offset(&self, second: &Self) -> usize {
         self.fragment.offset(second.fragment)
+    }
+}
+
+impl RcStr {
+    pub fn offset(&self, second: &str) -> usize {
+        self.fragment.offset(second)
+    }
+}
+
+impl PartialEq<str> for RcStr {
+    fn eq(&self, other: &str) -> bool {
+        self.fragment == other
+    }
+}
+
+impl<'a> PartialEq<&'a str> for RcStr {
+    fn eq(&self, other: &&'a str) -> bool {
+        self.fragment == *other
+    }
+}
+
+impl<'a> Compare<&'a str> for RcStr {
+    fn compare(&self, t: &'a str) -> CompareResult {
+        self.fragment.compare(t)
+    }
+
+    fn compare_no_case(&self, t: &'a str) -> CompareResult {
+        self.fragment.compare_no_case(t)
+    }
+}
+
+impl<R: RangeBounds<usize>> Slice<R> for RcStr
+where
+    &'static str: Slice<R>,
+{
+    fn slice(&self, range: R) -> Self {
+        Self {
+            _origin: self._origin.clone(),
+            fragment: self.fragment.slice(range),
+        }
+    }
+}
+
+impl PartialEq for RcStr {
+    fn eq(&self, other: &Self) -> bool {
+        self.fragment == other.fragment
+    }
+}
+
+impl Eq for RcStr {}
+
+impl Display for RcStr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.fragment)
+    }
+}
+
+impl Debug for RcStr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.fragment)
+    }
+}
+
+impl Borrow<str> for RcStr {
+    fn borrow(&self) -> &str {
+        self.fragment
     }
 }

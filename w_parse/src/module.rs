@@ -4,12 +4,12 @@ use crate::{Ident, ParResult, TokenSpan};
 
 // Leaving this open for mode things in the future like imports
 
-pub struct ParsedModule<'a> {
-    pub name: Ident<'a>,
-    pub items: Vec<Item<'a>>,
+pub struct ParsedModule {
+    pub name: Ident,
+    pub items: Vec<Item>,
 }
 
-pub fn parse_module<'a>(mut i: TokenSpan<'a>, name: Ident<'a>) -> ParResult<'a, ParsedModule<'a>> {
+pub fn parse_module(mut i: TokenSpan, name: Ident) -> ParResult<ParsedModule> {
     let mut items = vec![];
 
     while !i.is_empty() {

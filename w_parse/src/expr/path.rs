@@ -6,9 +6,9 @@ use std::hash::{Hash, Hasher};
 use w_tokenize::{Kind, Span};
 
 #[derive(Debug, Clone)]
-pub struct ExprPath<'a> {
-    pub root: Option<Span<'a>>,
-    pub path: Vec<Ident<'a>>,
+pub struct ExprPath {
+    pub root: Option<Span>,
+    pub path: Vec<Ident>,
 }
 
 pub fn parse_path(i: TokenSpan) -> ParResult<ExprPath> {
@@ -21,7 +21,7 @@ pub fn parse_path(i: TokenSpan) -> ParResult<ExprPath> {
     )(i)
 }
 
-impl<'a> Hash for ExprPath<'a> {
+impl Hash for ExprPath {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.root.is_some().hash(state);
         for ident in &self.path {
@@ -30,7 +30,7 @@ impl<'a> Hash for ExprPath<'a> {
     }
 }
 
-impl<'a> PartialEq for ExprPath<'a> {
+impl PartialEq for ExprPath {
     fn eq(&self, other: &Self) -> bool {
         if self.path.len() != other.path.len() {
             return false;
@@ -44,4 +44,4 @@ impl<'a> PartialEq for ExprPath<'a> {
     }
 }
 
-impl<'a> Eq for ExprPath<'a> {}
+impl Eq for ExprPath {}

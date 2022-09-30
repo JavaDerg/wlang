@@ -1,9 +1,9 @@
 use crate::{parse_name, parse_type, Ident, ItemTy, ParResult, TokenSpan};
 
 #[derive(Debug, Clone)]
-pub struct NameTyPair<'a> {
-    pub name: Ident<'a>,
-    pub ty: ItemTy<'a>,
+pub struct NameTyPair {
+    pub name: Ident,
+    pub ty: ItemTy,
 }
 
 pub fn parse_name_ty_pair(i: TokenSpan) -> ParResult<NameTyPair> {

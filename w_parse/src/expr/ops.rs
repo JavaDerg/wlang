@@ -8,12 +8,12 @@ use nom::InputTake;
 use w_tokenize::{Kind, Span};
 
 #[derive(Debug, Clone)]
-pub struct ExprBinary<'a> {
+pub struct ExprBinary {
     pub op: BiOp,
-    pub op_span: Span<'a>,
+    pub op_span: Span,
 
-    pub left: Box<Expr<'a>>,
-    pub right: Box<Expr<'a>>,
+    pub left: Box<Expr>,
+    pub right: Box<Expr>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -77,7 +77,7 @@ pub fn parse_binary_ops(mut i: TokenSpan) -> ParResult<ExprBinary> {
     ))
 }
 
-fn eval_order<'a>(exprs: &mut Vec<Expr<'a>>, ops: &mut Vec<(Span<'a>, BiOp)>) {
+fn eval_order(exprs: &mut Vec<Expr>, ops: &mut Vec<(Span, BiOp)>) {
     while !ops.is_empty() {
         let lowest = ops.iter().map(|op| op.1.priority()).min().unwrap();
 
@@ -138,7 +138,7 @@ pub fn parse_bi_op(i: TokenSpan) -> ParResult<(Span, BiOp)> {
         }
     };
 
-    Ok((i, (took[0].span, kind)))
+    Ok((i, (took[0].span.clone(), kind)))
 }
 
 impl BiOp {

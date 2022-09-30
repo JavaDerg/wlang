@@ -4,17 +4,17 @@ use nom::Offset;
 use std::borrow::Cow;
 use std::fmt::{Debug, Formatter};
 
-pub struct ErrorChain<'a> {
-    err_acc: Vec<Error<'a>>,
+pub struct ErrorChain {
+    err_acc: Vec<Error>,
 }
 
-pub struct Error<'a> {
-    pub location: TokenSpan<'a>,
+pub struct Error {
+    pub location: TokenSpan,
     pub reason: Cow<'static, str>,
 }
 
-impl<'a> Error<'a> {
-    pub fn new(location: TokenSpan<'a>, reason: impl Into<Cow<'static, str>>) -> Self {
+impl Error {
+    pub fn new(location: TokenSpan, reason: impl Into<Cow<'static, str>>) -> Self {
         Self {
             location,
             reason: reason.into(),
@@ -22,36 +22,36 @@ impl<'a> Error<'a> {
     }
 }
 
-impl<'a> ErrorChain<'a> {
+impl ErrorChain {
     pub fn has_errs(&self) -> bool {
         !self.err_acc.is_empty()
     }
 
-    pub fn put_errs(&mut self, mut other: ErrorChain<'a>) {
+    pub fn put_errs(&mut self, mut other: ErrorChain) {
         self.err_acc.append(&mut other.err_acc);
     }
 }
 
-impl<'a> From<Error<'a>> for ErrorChain<'a> {
-    fn from(err: Error<'a>) -> Self {
+impl From<Error> for ErrorChain {
+    fn from(err: Error) -> Self {
         Self { err_acc: vec![err] }
     }
 }
 
-impl<'a> ParseError<TokenSpan<'a>> for ErrorChain<'a> {
-    fn from_error_kind(input: TokenSpan<'a>, kind: ErrorKind) -> Self {
+impl ParseError<TokenSpan> for ErrorChain {
+    fn from_error_kind(input: TokenSpan, kind: ErrorKind) -> Self {
         Self {
             err_acc: vec![Error::new(input, format!("{:?}", kind))],
         }
     }
 
-    fn append(input: TokenSpan<'a>, kind: ErrorKind, mut other: Self) -> Self {
+    fn append(input: TokenSpan, kind: ErrorKind, mut other: Self) -> Self {
         other.err_acc.push(Error::new(input, format!("{:?}", kind)));
         other
     }
 }
 
-impl<'a> Debug for ErrorChain<'a> {
+impl Debug for ErrorChain {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for err in &self.err_acc {
             writeln!(f, "{:?}", err)?;
@@ -60,7 +60,7 @@ impl<'a> Debug for ErrorChain<'a> {
     }
 }
 
-impl<'a> Debug for Error<'a> {
+impl Debug for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Error: {}", self.reason)?;
         if self.location.is_empty() {

@@ -10,24 +10,24 @@ use std::rc::Rc;
 use w_tokenize::{Kind, Span, Token};
 
 #[derive(Debug, Clone)]
-pub struct Statement<'a> {
-    pub expr: Expr<'a>,
-    pub sim: Option<Token<'a>>,
+pub struct Statement {
+    pub expr: Expr,
+    pub sim: Option<Token>,
 }
 
 #[derive(Debug, Clone)]
-pub struct ExprBlock<'a> {
-    pub span: Span<'a>,
-    pub kind: BlockKind<'a>,
+pub struct ExprBlock {
+    pub span: Span,
+    pub kind: BlockKind,
 }
 
 #[derive(Debug, Clone)]
-pub enum BlockKind<'a> {
+pub enum BlockKind {
     Many {
-        stmts: Vec<Statement<'a>>,
-        returning: Option<Box<Expr<'a>>>,
+        stmts: Vec<Statement>,
+        returning: Option<Box<Expr>>,
     },
-    Inline(Box<Expr<'a>>),
+    Inline(Box<Expr>),
 }
 
 pub fn parse_block(i: TokenSpan) -> ParResult<ExprBlock> {
@@ -37,7 +37,8 @@ pub fn parse_block(i: TokenSpan) -> ParResult<ExprBlock> {
 fn parse_block_many(i: TokenSpan) -> ParResult<ExprBlock> {
     let (oi, block) = Weak(Kind::Block(Rc::from([]))).parse(i)?;
     let span = block.span;
-    let mut i = assert_matches!(block.kind, Kind::Block(vals) => TokenSpan::new(oi.file, vals));
+    let mut i =
+        assert_matches!(block.kind, Kind::Block(vals) => TokenSpan::new(oi.file.clone(), vals));
 
     let mut acc = vec![];
     let last;

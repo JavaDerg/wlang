@@ -18,32 +18,32 @@ use typed_arena::Arena;
 
 use w_parse::Ident;
 
-pub struct Module<'a, 'gc> {
-    pub types_arena: &'gc Arena<TypeRef<'a, 'gc>>,
+pub struct Module<'gc> {
+    pub types_arena: &'gc Arena<TypeRef<'gc>>,
     pub modules_arena: &'gc Arena<Self>,
 
-    pub types: RefCell<HashMap<Ident<'a>, &'gc TypeRef<'a, 'gc>>>,
-    pub modules: RefCell<HashMap<Ident<'a>, &'gc Self>>,
+    pub types: RefCell<HashMap<Ident, &'gc TypeRef<'gc>>>,
+    pub modules: RefCell<HashMap<Ident, &'gc Self>>,
 
     // the module is where the item is from and not the item it self
     // pub imports: RefCell<HashMap<Ident<'a>, &'gc Self>>,
     pub previous: Option<&'gc Self>,
 
-    pub path: PathBuf<'a>,
-    pub name: Option<Ident<'a>>,
+    pub path: PathBuf,
+    pub name: Option<Ident>,
 
-    pub owner: ModuleOwner<'a, 'gc>,
+    pub owner: ModuleOwner<'gc>,
 }
 
-pub type ModuleOwner<'a, 'gc> = Option<Either<FileRef, Location<'a, 'gc>>>;
+pub type ModuleOwner<'gc> = Option<Either<FileRef, Location<'gc>>>;
 
 #[derive(Clone)]
-pub struct Location<'a, 'gc> {
-    pub name: Ident<'a>,
-    pub home: &'gc Module<'a, 'gc>,
+pub struct Location<'gc> {
+    pub name: Ident,
+    pub home: &'gc Module<'gc>,
 }
 
-pub type TypeOrigin<'a, 'gc> = Origin<&'gc TypeRef<'a, 'gc>>;
+pub type TypeOrigin<'gc> = Origin<&'gc TypeRef<'gc>>;
 
 #[derive(Hash, PartialEq, Eq)]
 pub enum Origin<T> {
@@ -51,12 +51,12 @@ pub enum Origin<T> {
     Import(T),
 }
 
-impl<'a, 'gc> Module<'a, 'gc> {
+impl<'gc> Module<'gc> {
     pub fn new(
-        path: PathBuf<'a>,
-        owner: ModuleOwner<'a, 'gc>,
+        path: PathBuf,
+        owner: ModuleOwner<'gc>,
         modules: &'gc Arena<Self>,
-        types: &'gc Arena<TypeRef<'a, 'gc>>,
+        types: &'gc Arena<TypeRef<'gc>>,
     ) -> &'gc Self {
         modules.alloc(Module {
             types_arena: types,
@@ -71,7 +71,7 @@ impl<'a, 'gc> Module<'a, 'gc> {
         })
     }
 
-    pub fn new_root(modules: &'gc Arena<Self>, types: &'gc Arena<TypeRef<'a, 'gc>>) -> &'gc Self {
+    pub fn new_root(modules: &'gc Arena<Self>, types: &'gc Arena<TypeRef<'gc>>) -> &'gc Self {
         modules.alloc(Module {
             types_arena: types,
             modules_arena: modules,
@@ -85,15 +85,15 @@ impl<'a, 'gc> Module<'a, 'gc> {
         })
     }
 
-    pub fn previous(&self) -> Option<&'gc Module<'a, 'gc>> {
+    pub fn previous(&self) -> Option<&'gc Module<'gc>> {
         self.previous
     }
 
-    pub fn root(&'gc self) -> &'gc Module<'a, 'gc> {
+    pub fn root(&'gc self) -> &'gc Module<'gc> {
         self.previous.map_or(self, |p| p.root())
     }
 
-    pub fn access_or_create_type(&'gc self, path: &Path<'a>) -> &'gc TypeRef<'a, 'gc> {
+    pub fn access_or_create_type(&'gc self, path: &Path) -> &'gc TypeRef<'gc> {
         if path.is_empty() {
             panic!("empty path provided");
         }
@@ -113,7 +113,7 @@ impl<'a, 'gc> Module<'a, 'gc> {
             })
     }
 
-    pub fn access_or_create_module(&'gc self, path: &Path<'a>) -> &'gc Module<'a, 'gc> {
+    pub fn access_or_create_module(&'gc self, path: &Path) -> &'gc Module<'gc> {
         if path.is_empty() {
             return self;
         }

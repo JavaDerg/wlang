@@ -65,30 +65,30 @@ macro_rules! tag {
 }
 
 #[derive(Debug, Clone)]
-pub enum Expr<'a> {
-    Tuple(ExprTuple<'a>),
-    Array(ExprArray<'a>),
+pub enum Expr {
+    Tuple(ExprTuple),
+    Array(ExprArray),
 
-    Path(ExprPath<'a>),
-    Ctor(ExprCtor<'a>),
+    Path(ExprPath),
+    Ctor(ExprCtor),
 
-    Block(ExprBlock<'a>),
-    Binary(ExprBinary<'a>),
+    Block(ExprBlock),
+    Binary(ExprBinary),
 
-    Branch(ExprBranch<'a>),
-    While(ExprWhile<'a>),
+    Branch(ExprBranch),
+    While(ExprWhile),
 
-    Define(ExprDefine<'a>),
-    Assign(ExprAssignment<'a>),
+    Define(ExprDefine),
+    Assign(ExprAssignment),
 
-    Number(Box<Number<'a>>),
-    String(Span<'a>, String),
-    Ident(Ident<'a>),
+    Number(Box<Number>),
+    String(Span, String),
+    Ident(Ident),
 
-    Unary(ExprUnary<'a>),
-    Field(ExprField<'a>),
-    Call(ExprCall<'a>),
-    Index(ExprIndex<'a>),
+    Unary(ExprUnary),
+    Field(ExprField),
+    Call(ExprCall),
+    Index(ExprIndex),
 }
 
 pub fn parse_expression(i: TokenSpan) -> ParResult<Expr> {
@@ -125,7 +125,7 @@ fn parse_expr_mid_pass(i: TokenSpan, deep: bool) -> ParResult<Expr> {
     Ok((i, expr))
 }
 
-fn parse_succeeding<'a>(i: TokenSpan<'a>, expr: Expr<'a>) -> ParResult<'a, (Expr<'a>, bool)> {
+fn parse_succeeding(i: TokenSpan, expr: Expr) -> ParResult<(Expr, bool)> {
     let (i, succ) = opt(alt((
         parse_field_wrapper,
         parse_call_wrapper,
@@ -158,10 +158,10 @@ fn parse_expr_post_pass(i: TokenSpan, deep: bool) -> ParResult<Expr> {
     ))(i)
 }
 
-pub fn tag<'a, O: 'a>(
-    parser: fn(&Token<'a>) -> bool,
-    map: fn(Token<'a>) -> O,
-) -> impl FnMut(TokenSpan<'a>) -> ParResult<'a, O> {
+pub fn tag<O>(
+    parser: fn(&Token) -> bool,
+    map: fn(Token) -> O,
+) -> impl FnMut(TokenSpan) -> ParResult<O> {
     move |i| {
         if i.is_empty() {
             return Err(Err::Error(ErrorChain::from_error_kind(i, ErrorKind::Eof)));
@@ -179,7 +179,7 @@ pub fn tag<'a, O: 'a>(
     }
 }
 
-impl<'a> Expr<'a> {
+impl Expr {
     pub fn needs_termination(&self) -> bool {
         match self {
             Expr::Tuple(_)

@@ -4,10 +4,10 @@ use nom::combinator::map;
 use w_tokenize::Span;
 
 #[derive(Debug, Clone)]
-pub struct ExprAssignment<'a> {
-    pub span_op: Span<'a>,
-    pub assignee: Box<Expr<'a>>,
-    pub value: Box<Expr<'a>>,
+pub struct ExprAssignment {
+    pub span_op: Span,
+    pub assignee: Box<Expr>,
+    pub value: Box<Expr>,
 }
 
 pub fn parse_assignment(i: TokenSpan) -> ParResult<ExprAssignment> {

@@ -3,14 +3,12 @@ use crate::expr::Expr;
 use crate::{ParResult, TokenSpan};
 
 #[derive(Debug, Clone)]
-pub struct ExprIndex<'a> {
-    pub base: Box<Expr<'a>>,
-    pub args: ExprArray<'a>,
+pub struct ExprIndex {
+    pub base: Box<Expr>,
+    pub args: ExprArray,
 }
 
-pub fn parse_index_wrapper<'a>(
-    i: TokenSpan<'a>,
-) -> ParResult<'a, Box<dyn FnOnce(Expr<'a>) -> Expr<'a> + 'a>> {
+pub fn parse_index_wrapper(i: TokenSpan) -> ParResult<Box<dyn FnOnce(Expr) -> Expr>> {
     let (i, args) = parse_array(i)?;
     Ok((
         i,

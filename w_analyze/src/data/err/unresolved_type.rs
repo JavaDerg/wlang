@@ -3,9 +3,9 @@ use crate::data::err::{AnalyzerError, ErrKind};
 
 use w_parse::Ident;
 
-pub struct UnresolvedTypeError<'a>(pub Ident<'a>);
+pub struct UnresolvedTypeError(pub Ident);
 
-impl<'a> AnalyzerError<'a> for UnresolvedTypeError<'a> {
+impl AnalyzerError for UnresolvedTypeError {
     fn kind(&self) -> ErrKind {
         ErrKind::Error
     }
@@ -13,7 +13,7 @@ impl<'a> AnalyzerError<'a> for UnresolvedTypeError<'a> {
     fn fmt(&self, f: &mut ErrorFormatter) {
         f.err()
             .description("Unable to resolve type")
-            .location(self.0 .0)
+            .location(self.0 .0.clone())
             .add_note("Try defining the type")
             .add_note("Try importing the type")
             .submit();

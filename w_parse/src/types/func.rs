@@ -5,17 +5,17 @@ use nom::combinator::{all_consuming, map};
 use w_tokenize::Span;
 
 #[derive(Debug, Clone)]
-pub struct TyFunc<'a> {
-    pub span_func: Span<'a>,
-    pub args: Vec<ItemTy<'a>>,
-    pub ret_ty: Box<ItemTy<'a>>,
+pub struct TyFunc {
+    pub span_func: Span,
+    pub args: Vec<ItemTy>,
+    pub ret_ty: Box<ItemTy>,
 }
 
 #[derive(Debug, Clone)]
-pub struct TyNamedFunc<'a> {
-    pub span_func: Span<'a>,
-    pub args: Vec<NameTyPair<'a>>,
-    pub ret_ty: Box<ItemTy<'a>>,
+pub struct TyNamedFunc {
+    pub span_func: Span,
+    pub args: Vec<NameTyPair>,
+    pub ret_ty: Box<ItemTy>,
 }
 
 pub fn parse_ty_func(i: TokenSpan) -> ParResult<TyFunc> {
@@ -52,7 +52,7 @@ pub fn parse_ty_named_func(i: TokenSpan) -> ParResult<TyNamedFunc> {
 
 pub fn parse_func_args(i: TokenSpan) -> ParResult<Vec<ItemTy>> {
     let (i, tuple) = tag!(Kind::Tuple(_), Token { kind: Kind::Tuple(vals), .. } => vals)(i)?;
-    let tks = TokenSpan::new(i.file, tuple);
+    let tks = TokenSpan::new(i.file.clone(), tuple);
     let (_, args) = all_consuming(parse_many0(parse_type))(tks)?;
 
     Ok((i, args))
@@ -60,7 +60,7 @@ pub fn parse_func_args(i: TokenSpan) -> ParResult<Vec<ItemTy>> {
 
 pub fn parse_func_named_args(i: TokenSpan) -> ParResult<Vec<NameTyPair>> {
     let (i, tuple) = tag!(Kind::Tuple(_), Token { kind: Kind::Tuple(vals), .. } => vals)(i)?;
-    let tks = TokenSpan::new(i.file, tuple);
+    let tks = TokenSpan::new(i.file.clone(), tuple);
     let (_, args) = all_consuming(parse_many0(parse_name_ty_pair))(tks)?;
 
     Ok((i, args))

@@ -4,55 +4,55 @@ use std::collections::HashMap;
 use w_parse::Ident;
 use w_tokenize::Span;
 
-pub struct TypeSystem<'a> {
-    pub flat: HashMap<PathBuf<'a>, ElidedType<'a>>,
+pub struct TypeSystem {
+    pub flat: HashMap<PathBuf, ElidedType>,
 }
 
-pub struct ElidedType<'a> {
-    pub loc: PathBuf<'a>,
+pub struct ElidedType {
+    pub loc: PathBuf,
 
-    pub def: Span<'a>,
-    pub kind: ETyKind<'a>,
+    pub def: Span,
+    pub kind: ETyKind,
 }
 
-pub enum ETyKind<'a> {
-    Referred(PathBuf<'a>),
-    Array(ETyArray<'a>),
-    Enum(ETyEnum<'a>),
-    Func(ETyFunc<'a>),
+pub enum ETyKind {
+    Referred(PathBuf),
+    Array(ETyArray),
+    Enum(ETyEnum),
+    Func(ETyFunc),
     Never,
-    Ptr(ETyPtr<'a>),
-    Struct(ETyStruct<'a>),
-    Tuple(ETyTuple<'a>),
+    Ptr(ETyPtr),
+    Struct(ETyStruct),
+    Tuple(ETyTuple),
 }
 
-pub struct ETyArray<'a> {
-    pub ty: Box<ETyKind<'a>>,
+pub struct ETyArray {
+    pub ty: Box<ETyKind>,
     pub len: Option<u64>,
 }
 
-pub struct ETyEnum<'a> {
-    pub variants: Vec<(Ident<'a>, Option<ETyTuple<'a>>)>,
+pub struct ETyEnum {
+    pub variants: Vec<(Ident, Option<ETyTuple>)>,
 }
 
-pub struct ETyFunc<'a> {
-    pub args: Vec<ETyKind<'a>>,
-    pub ret: Box<ETyKind<'a>>,
+pub struct ETyFunc {
+    pub args: Vec<ETyKind>,
+    pub ret: Box<ETyKind>,
 }
 
-pub struct ETyPtr<'a> {
-    pub ty: Box<ETyKind<'a>>,
+pub struct ETyPtr {
+    pub ty: Box<ETyKind>,
 }
 
-pub struct ETyStruct<'a> {
-    pub fields: Vec<(Ident<'a>, ETyKind<'a>)>,
+pub struct ETyStruct {
+    pub fields: Vec<(Ident, ETyKind)>,
 }
 
-pub struct ETyTuple<'a> {
-    pub fields: Vec<ETyKind<'a>>,
+pub struct ETyTuple {
+    pub fields: Vec<ETyKind>,
 }
 
-pub fn elide_type_kind<'a, 'gc>(ty: TypeKind<'a, 'gc>) -> ETyKind<'a> {
+pub fn elide_type_kind<'gc>(ty: TypeKind<'gc>) -> ETyKind {
     match ty {
         TypeKind::Referred(_, pb) => ETyKind::Referred(pb),
         TypeKind::Array(TypeArray { ty, len, .. }) => ETyKind::Array(ETyArray {
@@ -83,7 +83,7 @@ pub fn elide_type_kind<'a, 'gc>(ty: TypeKind<'a, 'gc>) -> ETyKind<'a> {
     }
 }
 
-pub fn elide_tuple_kind<'a, 'gc>(ty: TypeTuple<'a, 'gc>) -> ETyTuple<'a> {
+pub fn elide_tuple_kind<'gc>(ty: TypeTuple<'gc>) -> ETyTuple {
     ETyTuple {
         fields: ty.fields.into_iter().map(elide_type_kind).collect(),
     }

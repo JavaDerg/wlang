@@ -6,21 +6,21 @@ use nom::Parser;
 use w_tokenize::{Kind, Token};
 
 #[derive(Debug, Clone)]
-pub struct ItemNamed<'a> {
-    pub name: Ident<'a>,
-    pub kind: NamedKind<'a>,
+pub struct ItemNamed {
+    pub name: Ident,
+    pub kind: NamedKind,
 }
 
 #[derive(Debug, Clone)]
-pub enum NamedKind<'a> {
-    Type(ItemNamedType<'a>),
-    Func(ItemFunc<'a>),
+pub enum NamedKind {
+    Type(ItemNamedType),
+    Func(ItemFunc),
 }
 
 #[derive(Debug, Clone)]
-pub struct ItemNamedType<'a> {
-    pub ty: ItemTy<'a>,
-    pub terminated: Option<Token<'a>>,
+pub struct ItemNamedType {
+    pub ty: ItemTy,
+    pub terminated: Option<Token>,
 }
 
 pub fn parse_named(i: TokenSpan) -> ParResult<ItemNamed> {

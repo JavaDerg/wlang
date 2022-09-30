@@ -7,16 +7,16 @@ use nom::{Offset, Slice};
 use w_tokenize::{Number, Span};
 
 #[derive(Debug, Clone)]
-pub struct TyArray<'a> {
-    pub span: Span<'a>,
-    pub ty: Box<ItemTy<'a>>,
-    pub size: Option<Box<Number<'a>>>,
+pub struct TyArray {
+    pub span: Span,
+    pub ty: Box<ItemTy>,
+    pub size: Option<Box<Number>>,
 }
 
 pub fn parse_ty_array(oi: TokenSpan) -> ParResult<TyArray> {
     let (i, array) =
         tag!(Kind::Array(_), Token { kind: Kind::Array(vals), .. } => vals)(oi.clone())?;
-    let array = TokenSpan::new(i.file, array);
+    let array = TokenSpan::new(i.file.clone(), array);
 
     let (_, size) = all_consuming(opt(alt((
         map(

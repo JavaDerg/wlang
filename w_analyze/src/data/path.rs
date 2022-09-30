@@ -6,45 +6,45 @@ use w_parse::Ident;
 
 #[repr(transparent)]
 #[derive(Hash, PartialEq, Eq)]
-pub struct Path<'a> {
-    path: [Ident<'a>],
+pub struct Path {
+    path: [Ident],
 }
 
 #[derive(Clone, Debug, Default, Hash, Eq, PartialEq)]
-pub struct PathBuf<'a> {
-    path: Vec<Ident<'a>>,
+pub struct PathBuf {
+    path: Vec<Ident>,
 }
 
-impl<'a> PathBuf<'a> {
+impl PathBuf {
     fn new() -> Self {
         Default::default()
     }
 }
 
-impl<'a> PathBuf<'a> {
-    pub fn append(&mut self, ident: Ident<'a>) {
+impl PathBuf {
+    pub fn append(&mut self, ident: Ident) {
         self.path.push(ident);
     }
 
-    pub fn append_path(&mut self, path: &Path<'a>) {
+    pub fn append_path(&mut self, path: &Path) {
         self.path.extend(path.path.iter().cloned());
     }
 }
 
-impl<'a> Path<'a> {
-    pub fn join(&self, other: Ident<'a>) -> PathBuf<'a> {
+impl Path {
+    pub fn join(&self, other: Ident) -> PathBuf {
         let mut path = self.to_owned();
         path.append(other);
         path
     }
 
-    pub fn join_path(&self, other: &Path<'a>) -> PathBuf<'a> {
+    pub fn join_path(&self, other: &Path) -> PathBuf {
         let mut path = self.to_owned();
         path.append_path(other);
         path
     }
 
-    pub fn slice(&self, range: impl RangeBounds<usize>) -> &Path<'a> {
+    pub fn slice(&self, range: impl RangeBounds<usize>) -> &Path {
         let start = match range.start_bound() {
             Bound::Included(&n) => n,
             Bound::Excluded(&n) => n + 1,
@@ -62,54 +62,54 @@ impl<'a> Path<'a> {
     }
 }
 
-impl<'a> ToString for Path<'a> {
+impl ToString for Path {
     fn to_string(&self) -> String {
         let mut buf = String::new();
 
         let mut iter = self.path.iter();
 
         if let Some(ident) = iter.next() {
-            buf.push_str(*ident.0);
+            buf.push_str(&*ident.0);
         }
         for ident in iter {
             buf.push(':');
-            buf.push_str(*ident.0);
+            buf.push_str(&*ident.0);
         }
 
         buf
     }
 }
 
-impl<'a, V: Into<Vec<Ident<'a>>>> From<V> for PathBuf<'a> {
+impl<'a, V: Into<Vec<Ident>>> From<V> for PathBuf {
     fn from(vec: V) -> Self {
         Self { path: vec.into() }
     }
 }
 
-impl<'a> Deref for PathBuf<'a> {
-    type Target = Path<'a>;
+impl Deref for PathBuf {
+    type Target = Path;
 
     fn deref(&self) -> &Self::Target {
         unsafe { transmute(self.path.as_slice()) }
     }
 }
 
-impl<'a> Deref for Path<'a> {
-    type Target = [Ident<'a>];
+impl Deref for Path {
+    type Target = [Ident];
 
     fn deref(&self) -> &Self::Target {
         &self.path
     }
 }
 
-impl<'a> Borrow<Path<'a>> for PathBuf<'a> {
-    fn borrow(&self) -> &Path<'a> {
+impl Borrow<Path> for PathBuf {
+    fn borrow(&self) -> &Path {
         self
     }
 }
 
-impl<'a> ToOwned for Path<'a> {
-    type Owned = PathBuf<'a>;
+impl ToOwned for Path {
+    type Owned = PathBuf;
 
     fn to_owned(&self) -> Self::Owned {
         PathBuf {
@@ -118,9 +118,9 @@ impl<'a> ToOwned for Path<'a> {
     }
 }
 
-impl<'a, 'b> IntoIterator for &'b Path<'a> {
-    type Item = &'b Ident<'a>;
-    type IntoIter = Iter<'b, Ident<'a>>;
+impl<'a, 'b> IntoIterator for &'b Path {
+    type Item = &'b Ident;
+    type IntoIter = Iter<'b, Ident>;
 
     fn into_iter(self) -> Self::IntoIter {
         (&self.path).iter()

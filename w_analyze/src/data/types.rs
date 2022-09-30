@@ -6,65 +6,65 @@ use crate::data::Location;
 use crate::PathBuf;
 use w_parse::Ident;
 
-pub struct TypeRef<'a, 'gc> {
-    pub loc: Location<'a, 'gc>,
-    pub definition: RefCell<Option<TypeInfo<'a, 'gc>>>,
+pub struct TypeRef<'gc> {
+    pub loc: Location<'gc>,
+    pub definition: RefCell<Option<TypeInfo<'gc>>>,
 }
 
-pub enum TypeInfo<'a, 'gc> {
-    Owned { kind: TypeKind<'a, 'gc> },
-    Proxy(&'gc TypeRef<'a, 'gc>),
-}
-
-#[derive(Clone)]
-pub enum TypeKind<'a, 'gc> {
-    Referred(&'gc TypeRef<'a, 'gc>, PathBuf<'a>),
-    Array(TypeArray<'a, 'gc>),
-    Enum(TypeEnum<'a, 'gc>),
-    Func(TypeFunc<'a, 'gc>),
-    Never(TypeNever<'a>),
-    Ptr(TypePtr<'a, 'gc>),
-    Struct(TypeStruct<'a, 'gc>),
-    Tuple(TypeTuple<'a, 'gc>),
+pub enum TypeInfo<'gc> {
+    Owned { kind: TypeKind<'gc> },
+    Proxy(&'gc TypeRef<'gc>),
 }
 
 #[derive(Clone)]
-pub struct TypeArray<'a, 'gc> {
-    pub def: Span<'a>,
-    pub ty: Box<TypeKind<'a, 'gc>>,
+pub enum TypeKind<'gc> {
+    Referred(&'gc TypeRef<'gc>, PathBuf),
+    Array(TypeArray<'gc>),
+    Enum(TypeEnum<'gc>),
+    Func(TypeFunc<'gc>),
+    Never(TypeNever),
+    Ptr(TypePtr<'gc>),
+    Struct(TypeStruct<'gc>),
+    Tuple(TypeTuple<'gc>),
+}
+
+#[derive(Clone)]
+pub struct TypeArray<'gc> {
+    pub def: Span,
+    pub ty: Box<TypeKind<'gc>>,
     pub len: Option<u64>,
 }
 
 #[derive(Clone)]
-pub struct TypeEnum<'a, 'gc> {
-    pub def: Span<'a>,
-    pub variants: Vec<(Ident<'a>, Option<TypeTuple<'a, 'gc>>)>,
+pub struct TypeEnum<'gc> {
+    pub def: Span,
+    pub variants: Vec<(Ident, Option<TypeTuple<'gc>>)>,
 }
 
 #[derive(Clone)]
-pub struct TypeFunc<'a, 'gc> {
-    pub def: Span<'a>,
-    pub args: Vec<TypeKind<'a, 'gc>>,
-    pub ret: Box<TypeKind<'a, 'gc>>,
+pub struct TypeFunc<'gc> {
+    pub def: Span,
+    pub args: Vec<TypeKind<'gc>>,
+    pub ret: Box<TypeKind<'gc>>,
 }
 
 #[derive(Clone)]
-pub struct TypePtr<'a, 'gc> {
-    pub def: Span<'a>,
-    pub ty: Box<TypeKind<'a, 'gc>>,
+pub struct TypePtr<'gc> {
+    pub def: Span,
+    pub ty: Box<TypeKind<'gc>>,
 }
 
 #[derive(Clone)]
-pub struct TypeStruct<'a, 'gc> {
-    pub def: Span<'a>,
-    pub fields: Vec<(Ident<'a>, TypeKind<'a, 'gc>)>,
+pub struct TypeStruct<'gc> {
+    pub def: Span,
+    pub fields: Vec<(Ident, TypeKind<'gc>)>,
 }
 
 #[derive(Clone)]
-pub struct TypeTuple<'a, 'gc> {
-    pub def: Span<'a>,
-    pub fields: Vec<TypeKind<'a, 'gc>>,
+pub struct TypeTuple<'gc> {
+    pub def: Span,
+    pub fields: Vec<TypeKind<'gc>>,
 }
 
 #[derive(Clone)]
-pub struct TypeNever<'a>(pub Span<'a>);
+pub struct TypeNever(pub Span);

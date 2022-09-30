@@ -21,15 +21,15 @@ use crate::types::r#struct::{parse_ty_struct, TyStruct};
 use crate::types::tuple::{parse_ty_tuple, TyTuple};
 
 #[derive(Debug, Clone)]
-pub enum ItemTy<'a> {
-    Referred(ExprPath<'a>),
-    Struct(TyStruct<'a>),
-    Enum(TyEnum<'a>),
-    Tuple(TyTuple<'a>),
-    Func(TyFunc<'a>),
-    Array(TyArray<'a>),
-    Pointer(TyPtr<'a>),
-    Never(TyNever<'a>),
+pub enum ItemTy {
+    Referred(ExprPath),
+    Struct(TyStruct),
+    Enum(TyEnum),
+    Tuple(TyTuple),
+    Func(TyFunc),
+    Array(TyArray),
+    Pointer(TyPtr),
+    Never(TyNever),
 }
 
 pub fn parse_type(i: TokenSpan) -> ParResult<ItemTy> {

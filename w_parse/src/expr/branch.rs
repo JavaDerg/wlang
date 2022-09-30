@@ -6,13 +6,13 @@ use nom::sequence::pair;
 use w_tokenize::Span;
 
 #[derive(Debug, Clone)]
-pub struct ExprBranch<'a> {
-    pub span_if: Span<'a>,
-    pub cond: Box<Expr<'a>>,
-    pub body: ExprBlock<'a>,
+pub struct ExprBranch {
+    pub span_if: Span,
+    pub cond: Box<Expr>,
+    pub body: ExprBlock,
 
-    pub span_else: Option<Span<'a>>,
-    pub body_else: Option<ExprBlock<'a>>,
+    pub span_else: Option<Span>,
+    pub body_else: Option<ExprBlock>,
 }
 
 pub fn parse_branch(i: TokenSpan) -> ParResult<ExprBranch> {

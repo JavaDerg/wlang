@@ -679,6 +679,7 @@ dependencies = [
  "typed-arena",
  "uuid",
  "w_parse",
+ "w_rcstr",
  "w_tokenize",
 ]
 
@@ -715,6 +716,7 @@ dependencies = [
  "nom",
  "nom_locate",
  "pretty_assertions",
+ "w_rcstr",
 ]
 
 [[package]]
@@ -824,6 +826,7 @@ version = "0.1.0"
 dependencies = [
  "ariadne",
  "w_parse",
+ "w_rcstr",
  "w_tokenize",
 ]
 

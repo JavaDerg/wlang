@@ -1,11 +1,12 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
 use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
+use w_rcstr::RcStr;
 use w_tokenize::{tokenize, Kind, Span};
 
 fn main() {
-    let str = include_str!("../../WIP_tests/mod_test/main.w");
-    let file = Span::new_extra(str, str);
+    let str = RcStr::new(include_str!("../../WIP_tests/mod_test/main.w").to_string());
+    let file = Span::new(str.clone());
     let (_, tokens) = tokenize(file).unwrap();
     // let (_, parsed) = parse(TokenSpan::new(file, Rc::from(tokens))).unwrap();
 
@@ -34,6 +35,6 @@ fn main() {
     rpb.with_message("well something happened here")
         .with_note("your program sucks")
         .finish()
-        .print(("main.w", Source::from(str)))
+        .print(("main.w", Source::from(&*str)))
         .unwrap();
 }

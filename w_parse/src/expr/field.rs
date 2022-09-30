@@ -5,15 +5,13 @@ use nom::sequence::pair;
 use w_tokenize::{Kind, Span};
 
 #[derive(Debug, Clone)]
-pub struct ExprField<'a> {
-    pub base: Box<Expr<'a>>,
-    pub dot: Span<'a>,
-    pub field: Ident<'a>,
+pub struct ExprField {
+    pub base: Box<Expr>,
+    pub dot: Span,
+    pub field: Ident,
 }
 
-pub fn parse_field_wrapper<'a>(
-    i: TokenSpan<'a>,
-) -> ParResult<'a, Box<dyn FnOnce(Expr<'a>) -> Expr<'a> + 'a>> {
+pub fn parse_field_wrapper(i: TokenSpan) -> ParResult<Box<dyn FnOnce(Expr) -> Expr>> {
     let (i, (tk, ident)) = pair(Weak(Kind::Dot), parse_name)(i)?;
     Ok((
         i,

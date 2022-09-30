@@ -6,11 +6,11 @@ use nom::sequence::pair;
 use nom::{Offset, Slice};
 
 #[derive(Debug, Clone)]
-pub struct Number<'a> {
-    pub sign: Option<Span<'a>>,
-    pub number: Span<'a>,
-    pub suffix: Option<Span<'a>>,
-    pub base: Option<Span<'a>>,
+pub struct Number {
+    pub sign: Option<Span>,
+    pub number: Span,
+    pub suffix: Option<Span>,
+    pub base: Option<Span>,
 }
 
 pub fn parse_integer(i: Span) -> TokResult<(Span, Number)> {
@@ -18,7 +18,7 @@ pub fn parse_integer(i: Span) -> TokResult<(Span, Number)> {
 }
 
 fn parse_integer_inner(oi: Span) -> TokResult<(Span, Number)> {
-    let (i, sign) = opt(is_a("+-"))(oi)?;
+    let (i, sign) = opt(is_a("+-"))(oi.clone())?;
     let (i, base) = opt(parse_base)(i)?;
     let num_check = match &base {
         Some(span) if **span == "0x" => |c: char| c.is_ascii_hexdigit(),
@@ -61,11 +61,12 @@ fn parse_suffix(i: Span) -> TokResult {
     ))(i)
 }
 
-impl<'a> PartialEq for Number<'a> {
+impl PartialEq for Number {
     fn eq(&self, other: &Self) -> bool {
         *self.number == *other.number
-            || self.base.map(|s| *s) == other.base.map(|s| *s)
-            || self.suffix.map(|s| *s) == self.suffix.map(|s| *s)
+            || self.base.as_ref().map(|s| s.fragment()) == other.base.as_ref().map(|s| s.fragment())
+            || self.suffix.as_ref().map(|s| s.fragment())
+                == self.suffix.as_ref().map(|s| s.fragment())
     }
 }
-impl<'a> Eq for Number<'a> {}
+impl Eq for Number {}

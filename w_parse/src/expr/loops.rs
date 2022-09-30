@@ -5,10 +5,10 @@ use nom::combinator::map;
 use w_tokenize::Span;
 
 #[derive(Debug, Clone)]
-pub struct ExprWhile<'a> {
-    pub span_while: Span<'a>,
-    pub cond: Box<Expr<'a>>,
-    pub body: ExprBlock<'a>,
+pub struct ExprWhile {
+    pub span_while: Span,
+    pub cond: Box<Expr>,
+    pub body: ExprBlock,
 }
 
 pub fn parse_while(i: TokenSpan) -> ParResult<ExprWhile> {

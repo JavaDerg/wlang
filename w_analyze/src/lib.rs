@@ -16,14 +16,14 @@ pub mod elided;
 pub mod pass1_tsys;
 pub mod vmod;
 
-pub struct AnalyzerOptions<'a> {
-    dependencies: Vec<Ident<'a>>,
+pub struct AnalyzerOptions {
+    dependencies: Vec<Ident>,
 }
 
-pub fn build_tsys<'a>(
-    vmd: &mut dyn ModuleProvider<'a>,
+pub fn build_tsys(
+    vmd: &mut dyn ModuleProvider,
     opt: AnalyzerOptions,
-) -> Result<(), ErrorCollector<'a>> {
+) -> Result<(), ErrorCollector> {
     let collector = ErrorCollector::default();
 
     let types_arena = Arena::new();

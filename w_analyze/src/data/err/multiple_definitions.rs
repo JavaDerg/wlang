@@ -2,9 +2,9 @@ use crate::data::err::fmt::ErrorFormatter;
 use crate::data::err::{AnalyzerError, ErrKind};
 use w_parse::Ident;
 
-pub struct MultipleDefinitionsError<'a> {
-    pub loc: Ident<'a>,
-    pub first: Ident<'a>,
+pub struct MultipleDefinitionsError {
+    pub loc: Ident,
+    pub first: Ident,
     pub kind: DefinitionKind,
 }
 
@@ -15,7 +15,7 @@ pub enum DefinitionKind {
     Import,
 }
 
-impl<'a> AnalyzerError<'a> for MultipleDefinitionsError<'a> {
+impl AnalyzerError for MultipleDefinitionsError {
     fn kind(&self) -> ErrKind {
         ErrKind::Error
     }
@@ -38,10 +38,10 @@ impl<'a> AnalyzerError<'a> for MultipleDefinitionsError<'a> {
 
         f.err()
             .description(msg1)
-            .location(self.loc.0)
+            .location(self.loc.0.clone())
             .add_elaboration()
             .description(msg2)
-            .location(self.first.0)
+            .location(self.first.0.clone())
             .build_help()
             .submit();
     }
