@@ -721,6 +721,7 @@ name = "w_rcstr"
 version = "0.1.0"
 dependencies = [
  "nom",
+ "pretty_assertions",
 ]
 
 [[package]]

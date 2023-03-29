@@ -79,7 +79,7 @@ impl Debug for Error {
         }
 
         let main = lines.next().unwrap();
-        let line_offset = (*self.location.file).offset(main);
+        let line_offset = (**self.location.file).offset(main);
         let offset = last_t.location_offset() - line_offset;
 
         writeln!(
