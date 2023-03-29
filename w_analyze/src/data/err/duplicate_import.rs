@@ -1,6 +1,6 @@
 use crate::data::err::fmt::ErrorFormatter;
 use crate::data::err::{AnalyzerError, ErrKind};
-use w_parse::Ident;
+
 use w_tokenize::Span;
 
 pub struct DuplicateImport {

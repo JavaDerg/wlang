@@ -15,7 +15,7 @@ use nom::combinator::{map, verify};
 use nom::{Err, Parser};
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
-use std::rc::Rc;
+
 use w_tokenize::{Kind, Span};
 
 pub use crate::parser::{ParResult, TokenSpan};

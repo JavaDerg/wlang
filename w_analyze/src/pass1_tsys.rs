@@ -2,8 +2,7 @@ use crate::data::err::{
     ArrayNumberFix, DefinitionKind, MultipleDefinitionsError, UnresolvedTypeError,
 };
 use crate::data::types::{
-    TypeArray, TypeEnum, TypeFunc, TypeInfo, TypeKind, TypeNever, TypePtr, TypeRef, TypeStruct,
-    TypeTuple,
+    TypeArray, TypeEnum, TypeFunc, TypeInfo, TypeKind, TypeNever, TypePtr, TypeStruct, TypeTuple,
 };
 use crate::{ErrorCollector, Module, PathBuf};
 use std::borrow::Cow;

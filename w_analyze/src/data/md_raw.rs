@@ -1,5 +1,5 @@
 use crate::PathBuf;
-use w_parse::{Ident, ParsedModule};
+use w_parse::ParsedModule;
 
 pub struct RawModuleInfo {
     pub parsed: ParsedModule,

@@ -1,4 +1,3 @@
-use crate::expr::path::ExprPath;
 use crate::item::{parse_item, Item};
 use crate::{Ident, ParResult, TokenSpan};
 

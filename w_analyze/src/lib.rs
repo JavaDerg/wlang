@@ -3,11 +3,11 @@
 extern crate core;
 
 use crate::data::err::ErrorCollector;
-use crate::data::md_raw::RawModuleInfo;
+
 use crate::data::path::PathBuf;
 use crate::data::Module;
 use crate::vmod::ModuleProvider;
-use std::collections::HashMap;
+
 use typed_arena::Arena;
 use w_parse::Ident;
 
@@ -21,7 +21,7 @@ pub struct AnalyzerOptions {
 }
 
 pub fn build_tsys(
-    vmd: &mut dyn ModuleProvider,
+    _vmd: &mut dyn ModuleProvider,
     opt: AnalyzerOptions,
 ) -> Result<(), ErrorCollector> {
     let collector = ErrorCollector::default();
@@ -29,9 +29,9 @@ pub fn build_tsys(
     let types_arena = Arena::new();
     let modules_arena = Arena::new();
 
-    let root_module = Module::new_root(&modules_arena, &types_arena);
+    let _root_module = Module::new_root(&modules_arena, &types_arena);
 
-    for dep in &opt.dependencies {
+    for _dep in &opt.dependencies {
         // vmd.
     }
 

@@ -3,18 +3,15 @@ pub mod types;
 
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
-use bevy_ecs::schedule::Schedule;
-use bevy_ecs::world::{EntityMut, World};
-use slotmap::SlotMap;
-use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap, HashSet};
-use std::future::Future;
-use std::marker::PhantomData;
-use std::thread::scope;
+
+use bevy_ecs::world::World;
+
+use std::collections::HashMap;
+
 use w_analyze::data::err::{DuplicateImport, ErrorCollector};
 use w_analyze::data::md_raw::RawModuleInfo;
-use w_analyze::data::path::{Path, PathBuf};
-use w_analyze::data::types::TypeKind;
+use w_analyze::data::path::PathBuf;
+
 use w_parse::expr::path::ExprPath;
 use w_parse::item::import::{Imports, ItemImports};
 use w_parse::item::named::{ItemNamed, ItemNamedType, NamedKind};
@@ -100,7 +97,7 @@ impl VmState {
                     });
             }
             ItemTy::Struct(TyStruct { fields, .. }) => {
-                let names = fields
+                let _names = fields
                     .iter()
                     .map(|pair| pair.name.clone())
                     .collect::<Vec<_>>();
