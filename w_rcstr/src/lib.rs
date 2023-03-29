@@ -2,8 +2,8 @@
 mod tests;
 
 use nom::{
-    AsBytes, Compare, CompareResult, ExtendInto, FindToken, InputIter, InputLength,
-    InputTake, Needed, Offset, Slice, UnspecializedInput,
+    AsBytes, Compare, CompareResult, ExtendInto, FindToken, InputIter, InputLength, InputTake,
+    Needed, Offset, Slice, UnspecializedInput,
 };
 use std::borrow::Borrow;
 use std::collections::Bound;
@@ -12,10 +12,15 @@ use std::ops::{Deref, Range, RangeBounds};
 use std::sync::Arc;
 
 #[derive(Clone)]
+pub enum Origin {
+    Unknown,
+}
+
+#[derive(Clone)]
 pub struct RcStr {
-    /// may not change ever
-    origin: Arc<String>,
+    str: Arc<String>,
     frag: Range<usize>,
+    origin: Origin,
 }
 
 pub struct RcChars(RcCharsIndices);
@@ -32,7 +37,10 @@ impl Iterator for RcChars {
         self.0.size_hint()
     }
 
-    fn count(self) -> usize where Self: Sized {
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
         self.0.count()
     }
 }
@@ -55,18 +63,22 @@ impl Iterator for RcCharsIndices {
         (self.0.len(), Some(self.0.len()))
     }
 
-    fn count(self) -> usize where Self: Sized {
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
         self.0.len()
     }
 }
 
 impl RcStr {
-    pub fn new(str: String) -> Self {
-        let origin = Arc::new(str);
+    pub fn new(str: String, origin: Origin) -> Self {
+        let str = Arc::new(str);
 
         Self {
-            frag: 0..origin.len(),
             origin,
+            frag: 0..str.len(),
+            str,
         }
     }
 }
@@ -75,7 +87,7 @@ impl Deref for RcStr {
     type Target = str;
 
     fn deref(&self) -> &Self::Target {
-        &self.origin[self.frag.clone()]
+        &self.str[self.frag.clone()]
     }
 }
 
@@ -120,13 +132,12 @@ impl InputIter for RcStr {
     type IterElem = RcChars;
 
     fn iter_indices(&self) -> Self::Iter {
-        RcCharsIndices(
-            self.clone(),
-            self.frag.start,
-        )
+        RcCharsIndices(self.clone(), self.frag.start)
     }
 
-    fn iter_elements(&self) -> Self::IterElem { RcChars(self.iter_indices()) }
+    fn iter_elements(&self) -> Self::IterElem {
+        RcChars(self.iter_indices())
+    }
 
     fn position<P>(&self, predicate: P) -> Option<usize>
     where
@@ -152,6 +163,7 @@ impl InputTake for RcStr {
 
         Self {
             origin: self.origin.clone(),
+            str: self.str.clone(),
             frag: self.frag.start..self.frag.start + count,
         }
     }
@@ -163,10 +175,12 @@ impl InputTake for RcStr {
         (
             Self {
                 origin: self.origin.clone(),
+                str: self.str.clone(),
                 frag: self.frag.start..split,
             },
             Self {
                 origin: self.origin.clone(),
+                str: self.str.clone(),
                 frag: split..self.frag.end,
             },
         )
@@ -226,6 +240,7 @@ where
 
         Self {
             origin: self.origin.clone(),
+            str: self.str.clone(),
             frag: self.frag.start + start..self.frag.start + end,
         }
     }
@@ -259,12 +274,12 @@ impl Borrow<str> for RcStr {
 
 impl From<String> for RcStr {
     fn from(s: String) -> Self {
-        Self::new(s)
+        Self::new(s, Origin::Unknown)
     }
 }
 
 impl From<&str> for RcStr {
     fn from(s: &str) -> Self {
-        Self::new(s.to_string())
+        Self::new(s.to_string(), Origin::Unknown)
     }
 }
